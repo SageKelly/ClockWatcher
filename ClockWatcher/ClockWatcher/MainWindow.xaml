@@ -1,0 +1,306 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ClockWatcher" xmlns:System="clr-namespace:System;assembly=mscorlib"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" xmlns:ei="http://schemas.microsoft.com/expression/2010/interactions"
+        x:Name="clockWatcherWindow"
+        x:Class="ClockWatcher.MainWindow"
+        Title="Clock Watcher" Height="554" Width="949"
+    KeyDown="KeysDown" Focusable="True" Closing="SaveSession">
+    <Window.Resources>
+        <UserControl x:Key="timeEntry"/>
+        <Color x:Key="gridSplitterColor">#FF637AAA</Color>
+        <Style x:Key="buttonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="AliceBlue"/>
+            <Setter Property="Padding" Value="{DynamicResource labelPadding}"/>
+        </Style>
+        <Thickness x:Key="borderDim">0,0,1,0</Thickness>
+        <Thickness x:Key="labelPadding">2,0</Thickness>
+        <Color x:Key="borderColor">#FF151E3E</Color>
+        <Color x:Key="buttonColorBackground">#FFB3D6E6</Color>
+        <System:Double x:Key="fontSize">16</System:Double>
+        <Style x:Key="ButtonLabel" TargetType="{x:Type Label}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Label}">
+                        <Grid>
+                            <Button Content="Button" Padding="0" BorderBrush="{x:Null}"/>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Storyboard x:Key="ToViewing">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="commentDock">
+                <EasingDoubleKeyFrame KeyTime="0" Value="0"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.4" Value="-320">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <CircleEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.4" Value="-320"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="-320"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1" Value="0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <CircleEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+        <Storyboard x:Key="ToBase">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="commentDock">
+                <EasingDoubleKeyFrame KeyTime="0" Value="-320"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="-320"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1" Value="0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <ExponentialEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock">
+                <EasingDoubleKeyFrame KeyTime="0" Value="0"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.4" Value="-320">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <CircleEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </Window.Resources>
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="ToggleButton.Checked" SourceName="TB_ViewSessions">
+            <BeginStoryboard x:Name="ToViewing_BeginStoryboard" Storyboard="{StaticResource ToViewing}"/>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="B_OpenSession">
+            <BeginStoryboard x:Name="ToBase_BeginStoryboard" Storyboard="{StaticResource ToBase}"/>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ToggleButton.Unchecked" SourceName="TB_ViewSessions">
+            <BeginStoryboard x:Name="ToBase_BeginStoryboard1" Storyboard="{StaticResource ToBase}"/>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="B_ViewSession">
+            <BeginStoryboard x:Name="ToBase_BeginStoryboard2" Storyboard="{StaticResource ToBase}"/>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="B_Cancel">
+            <BeginStoryboard x:Name="ToBase_BeginStoryboard3" Storyboard="{StaticResource ToBase}"/>
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="B_OpenSession">
+            <BeginStoryboard x:Name="ToBase_BeginStoryboard4" Storyboard="{StaticResource ToBase}"/>
+        </EventTrigger>
+    </Window.Triggers>
+    <Grid x:Name="homeGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="39*"/>
+            <RowDefinition Height="484*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="255*"/>
+            <ColumnDefinition Width="496*"/>
+        </Grid.ColumnDefinitions>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="Anim_States">
+                <VisualStateGroup.Transitions>
+                    <VisualTransition From="Viewing" GeneratedDuration="0" To="Base">
+                        <VisualTransition.GeneratedEasingFunction>
+                            <CircleEase EasingMode="EaseOut"/>
+                        </VisualTransition.GeneratedEasingFunction>
+                        <Storyboard>
+                            <DoubleAnimation Duration="0:0:0.4" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="commentDock" BeginTime="0:0:0.6">
+                                <DoubleAnimation.EasingFunction>
+                                    <CircleEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Duration="0:0:0.4" To="-234" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock">
+                                <DoubleAnimation.EasingFunction>
+                                    <CircleEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </VisualTransition>
+                    <VisualTransition From="Base" GeneratedDuration="0" To="Viewing">
+                        <VisualTransition.GeneratedEasingFunction>
+                            <CircleEase EasingMode="EaseOut"/>
+                        </VisualTransition.GeneratedEasingFunction>
+                        <Storyboard>
+                            <DoubleAnimation Duration="0:0:0.4" To="0" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock" BeginTime="0:0:0.6">
+                                <DoubleAnimation.EasingFunction>
+                                    <CircleEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Duration="0:0:0.4" To="-234" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="commentDock">
+                                <DoubleAnimation.EasingFunction>
+                                    <CircleEase EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </VisualTransition>
+
+                </VisualStateGroup.Transitions>
+                <VisualState x:Name="Base">
+                    <Storyboard>
+                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock">
+                            <EasingDoubleKeyFrame KeyTime="0" Value="-234"/>
+                        </DoubleAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="Viewing">
+                    <Storyboard>
+                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="commentDock">
+                            <EasingDoubleKeyFrame KeyTime="0" Value="-234"/>
+                        </DoubleAnimationUsingKeyFrames>
+                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[3].(TranslateTransform.X)" Storyboard.TargetName="ViewSessionDock">
+                            <EasingDoubleKeyFrame KeyTime="0" Value="0"/>
+                        </DoubleAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <StackPanel x:Name="mainStack"  Orientation="Horizontal" VerticalAlignment="Top" Grid.ColumnSpan="2" Height="21.28">
+            <Border x:Name="programStartBorder" BorderThickness="{DynamicResource borderDim}" BorderBrush="Black">
+                <TextBlock x:Name="programStartBlock" Text="{Binding CurrentSession.creationDate, FallbackValue=Binding error, StringFormat=ProgramStarted: \{0\}, TargetNullValue=null}"
+					Padding="{DynamicResource labelPadding}" FontSize="{DynamicResource fontSize}"/>
+            </Border>
+            <TextBlock x:Name="totalTimeBlock" Text="{Binding CurrentSession.TotalTime, FallbackValue=Binding error, StringFormat=Total Time: \{0:hh\}:\{0:mm\}:\{0:ss\}}" Padding="{DynamicResource labelPadding}" FontSize="{DynamicResource fontSize}"/>
+            <Border x:Name="totalTimeBorder" BorderThickness="{DynamicResource borderDim}" BorderBrush="Black">
+            </Border>
+            <TextBlock x:Name="currentTimeBlock" Text="{Binding CurrentTime,
+                    StringFormat=Current Time: \{0:hh\}:\{0:mm\}:\{0:ss\} \{0:tt\},
+                    FallbackValue=Binding error}" Padding="{DynamicResource labelPadding}" FontSize="{DynamicResource fontSize}"/>
+        </StackPanel>
+        <Grid x:Name="leftGrid" Focusable="True" RenderTransformOrigin="0.5,0.5" Grid.Row="1">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="389*"/>
+            </Grid.RowDefinitions>
+            <StackPanel x:Name="LeftStack" RenderTransformOrigin="0.5,0.5">
+                <StackPanel.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.RenderTransform>
+                <ToggleButton x:Name="TB_ViewSessions" Content="View Sessions" FontSize="16" Checked="ShowOldSessions"/>
+                <Button x:Name="B_CombineTimes" Style="{DynamicResource buttonStyle}" Content="CombineTimes" FontSize="{DynamicResource fontSize}"/>
+                <Button x:Name="B_SaveSession" Style="{DynamicResource buttonStyle}" Content="Save Session(s)" FontSize="{DynamicResource fontSize}"/>
+            </StackPanel>
+            <DockPanel x:Name="commentDock" Panel.ZIndex="1" VerticalAlignment="Stretch" Margin="0,71.84,0,0" RenderTransformOrigin="0.5,0.5">
+                <DockPanel.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </DockPanel.RenderTransform>
+                <DockPanel.Background>
+                    <SolidColorBrush Color="{DynamicResource buttonColorBackground}"/>
+                </DockPanel.Background>
+                <TextBlock x:Name="Total_Time" TextWrapping="Wrap" Text="{Binding FilteredTime, StringFormat=Time Spent: \{0:hh\}:\{0:mm\}:\{0:ss\}}" FontSize="16" DockPanel.Dock="Top" UseLayoutRounding="False"/>
+                <Label x:Name="commentBankLabel" DockPanel.Dock="Top" Content="Comment Bank / Filter By..." FontSize="16" Padding="{DynamicResource labelPadding}">
+                    <Label.Background>
+                        <SolidColorBrush Color="{DynamicResource buttonColorBackground}"/>
+                    </Label.Background>
+                </Label>
+                <StackPanel x:Name="commentAddingStack"  Orientation="Horizontal" VerticalAlignment="Top" DockPanel.Dock="Top">
+                    <TextBox x:Name="commentAddingBox" Text="" GotFocus="commentAddingBox_GotFocus" LostFocus="commentAddingBox_LostFocus" FontSize="{DynamicResource fontSize}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" MinWidth="200" SpellCheck.IsEnabled="True"/>
+                    <Button x:Name="commentAddingButton" Content="Add" Click="commentAddButton_Click" FontSize="{DynamicResource fontSize}" HorizontalContentAlignment="Center"/>
+                </StackPanel>
+                <ScrollViewer x:Name="commentScrollView"  HorizontalScrollBarVisibility="Visible" Grid.Row="0" VerticalContentAlignment="Stretch" DockPanel.Dock="Bottom">
+                    <ScrollViewer.Background>
+                        <SolidColorBrush Color="{DynamicResource gridSplitterColor}"/>
+                    </ScrollViewer.Background>
+                    <StackPanel x:Name="commentStack"/>
+                </ScrollViewer>
+            </DockPanel>
+            <DockPanel x:Name="ViewSessionDock" RenderTransformOrigin="0.5,0.5" Margin="0,71.84,0,-71.84" VerticalAlignment="Top">
+                <DockPanel.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform X="-320"/>
+                    </TransformGroup>
+                </DockPanel.RenderTransform>
+                <ListBox x:Name="OldSessions" DockPanel.Dock="Top" ItemsSource="{Binding SessionNames}" SelectedIndex="-1" FontSize="16" MinHeight="292" SelectionMode="Multiple"/>
+                <StackPanel x:Name="buttonStack" Orientation="Horizontal" DockPanel.Dock="Bottom" VerticalAlignment="Top" HorizontalAlignment="Center">
+                    <Button x:Name="B_ViewSession" Content="View" FontSize="16" HorizontalAlignment="Left" Padding="2,1" Margin="2,0" VerticalAlignment="Top" Click="ConfirmSelection"/>
+                    <Button x:Name="B_DeleteSession" Content="Delete" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="16" Padding="2,1" Margin="2,0" Click="DeleteSelectedSession"/>
+                    <Button x:Name="B_Cancel" FontSize="16" Content="Cancel" HorizontalAlignment="Left" Padding="2,1" Margin="2,0" VerticalAlignment="Top" Click="CancelView"/>
+                    <Button x:Name="B_OpenSession" Content="Reload Open Session" Margin="2,0" FontSize="16" Padding="2,1" Click="RealoadOpenSession"/>
+                </StackPanel>
+            </DockPanel>
+        </Grid>
+        <Border x:Name="sessionBorder" BorderThickness="3,3,3,0" Grid.Row="1" Grid.Column="1">
+            <Border.BorderBrush>
+                <SolidColorBrush Color="{DynamicResource borderColor}"/>
+            </Border.BorderBrush>
+            <DockPanel x:Name="sessionDock">
+                <StackPanel x:Name="topDockStack" Orientation="Horizontal" DockPanel.Dock="Top" >
+                    <Button x:Name="entryAdderButton" Content="New Time Entry" Grid.Row="0" VerticalAlignment="Top" Padding="{DynamicResource labelPadding}" Click="entryAdder_Click" FontSize="{DynamicResource fontSize}"/>
+                </StackPanel>
+                <ScrollViewer x:Name="timeEntryList" BorderThickness="2,0" HorizontalScrollBarVisibility="Visible"  DockPanel.Dock="Top">
+                    <ScrollViewer.BorderBrush>
+                        <SolidColorBrush Color="{DynamicResource borderColor}"/>
+                    </ScrollViewer.BorderBrush>
+                    <ScrollViewer.Background>
+                        <SolidColorBrush Color="{DynamicResource gridSplitterColor}"/>
+                    </ScrollViewer.Background>
+                    <StackPanel x:Name="timeStack"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+        <Popup x:Name="intelPopup" PopupAnimation="Fade" AllowsTransparency="True" Margin="0,0,70.5,15">
+            <Grid x:Name="popupGrid" Background="#FFE5E5E5" Height="100" HorizontalAlignment="Left">
+                <Border x:Name="intelBorder" BorderThickness="3">
+                    <Border.BorderBrush>
+                        <SolidColorBrush Color="{StaticResource borderColor}"/>
+                    </Border.BorderBrush>
+                    <ListBox x:Name="intelListBox" Height="100" ScrollViewer.VerticalScrollBarVisibility="Visible"
+						SelectionChanged="intelListBox_SelectionChanged"/>
+                </Border>
+            </Grid>
+        </Popup>
+        <Popup x:Name="dialogPopup" PopupAnimation="Fade" AllowsTransparency="True">
+            <Grid Background="#FFE5E5E5" Height="100" HorizontalAlignment="Left">
+                <Border BorderThickness="3">
+                    <Border.BorderBrush>
+                        <SolidColorBrush Color="{StaticResource borderColor}"/>
+                    </Border.BorderBrush>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock x:Name="dialogBlock" FontSize="14"/>
+                        <DockPanel>
+                            <Button x:Name="B_OK" Content="OK" Click="B_OK_Click"/>
+                            <Button x:Name="B_No" Content="No" Click="B_No_Click" DockPanel.Dock="Right"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Popup>
+        <Popup x:Name="warningPopup" PopupAnimation="Fade" AllowsTransparency="True">
+            <Grid Background="#FFE5E5E5" Height="100" HorizontalAlignment="Left">
+                <Border BorderThickness="3">
+                    <Border.BorderBrush>
+                        <SolidColorBrush Color="{StaticResource borderColor}"/>
+                    </Border.BorderBrush>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock x:Name="warningBlock" FontSize="14"/>
+                        <DockPanel>
+                            <Button x:Name="B_OKWarning" Content="OK" Click="B_OK_Click"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Popup>
+    </Grid>
+</Window>
