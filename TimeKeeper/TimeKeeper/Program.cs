@@ -15,17 +15,8 @@ namespace TimeKeeper
         static Thread InputWatcher, DayWatcher;
         static ConsoleKeyInfo CKI;
         static Stopwatch Timer;
-        /// <summary>
-        /// represents the newest session
-        /// </summary>
-        static Session currentSession;
-        /// <summary>
-        /// represents the currently viewed session
-        /// </summary>
-        static Session viewingSession;
+
         static SessionManager SM;
-        delegate void MethodInvoker();
-        static Queue<MethodInvoker> PrintQueue;
         static int listIndex = 0;
         static TimeSpan curTime = TimeSpan.Zero, prevTime = curTime;
         /// <summary>
@@ -34,9 +25,9 @@ namespace TimeKeeper
         static bool TimerChanged;
         static bool newDayOccurred = false;
         /// <summary>
-        /// Represents the currently selected in the currentSession.Times list.
+        /// Represents the currently selected in the SM.currentSession.Times list.
         /// In this program, it assumes the newest index before it exists.
-        /// Therefore, if currentSession.Times has 3 entries, ListIndex, at that point would equal 3.
+        /// Therefore, if SM.currentSession.Times has 3 entries, ListIndex, at that point would equal 3.
         /// </summary>
         static int ListIndex
         {
@@ -47,247 +38,11 @@ namespace TimeKeeper
             set
             {
                 listIndex = value;
-                Console.CursorTop = listIndex + TEXT_COUNT;
+                Console.CursorTop = listIndex + Printer.TEXT_COUNT;
             }
         }
 
         const string FILENAME = "Sessions.bin";
-
-        #region CONSTANTS
-        /// <summary>
-        /// Represents the last line the Console's cursor before
-        /// a method manipulated it (0).
-        /// </summary>
-        static int LastLine = 0;
-
-        /// <summary>
-        /// The Left location for the comments column for a TimeInfo (16)
-        /// </summary>
-        const int COMMENT_LEFT = 16;
-
-        static int COMMENT_PAD = Console.BufferWidth - COMMENT_LEFT - 1;
-
-        /// <summary>
-        /// The Top location for the program's status. Also used for Total Time (6)
-        /// </summary>
-        const int STATUS_TOP = 6;
-
-        /// <summary>
-        /// The Left location for the program's status (8).
-        /// </summary>
-        const int STATUS_LEFT = 8;
-
-        /// <summary>
-        /// The padding for the status section of the screen (7)
-        /// </summary>
-        const int STATUS_PAD = 7;
-
-        /// <summary>
-        /// How many lines before TimeEntries are written (8).
-        /// </summary>
-        const int TEXT_COUNT = 8;
-
-        /// <summary>
-        /// The Left location for the Total Time (16)
-        /// </summary>
-        const int TOTAL_LEFT = 16;
-
-        /// <summary>
-        /// The Left locations of the cursor for a TimeEntry mark (0)
-        /// </summary>
-        const int MARK_LEFT = 0;
-
-        /// <summary>
-        /// The Left location of the cursor for a TimeEntry (1)
-        /// </summary>
-        const int TIME_LEFT = 1;
-
-        /// <summary>
-        /// Holds the tab escape sequences for printing (12)
-        /// </summary>
-        const int TAB_PAD = 12/*two tabs*/;
-
-        /// <summary>
-        /// Represents the cursor's top location for the instructions (1)
-        /// </summary>
-        const int INSTRUCTIONS_TOP = 1;//No left needed
-
-        /// <summary>
-        /// Represents how much console padding should happen
-        /// on certain printing instructions (39)
-        /// </summary>
-        const int INSTRUCTIONS_PAD = 39;
-        #endregion
-
-        #region Printing Booleans
-        private static bool printCombineMark = false;
-        private static bool printInstructions = false;
-        private static bool printMark = false;
-        private static bool printTime = false;
-        private static bool printScreen = false;
-        private static bool printStatus = false;
-        private static bool printAllTimes = false;
-        private static bool printTotalTime = false;
-        private static bool saveTimes = false;
-
-        private static bool BPrintCombineMark
-        {
-            get
-            {
-                return printCombineMark;
-            }
-            set
-            {
-                printCombineMark = value;
-                if (printCombineMark)
-                    PrintQueue.Enqueue(PrintCombineMark);
-            }
-        }
-        private static bool BPrintInstructions
-        {
-            get
-            {
-                return printInstructions;
-            }
-            set
-            {
-                printInstructions = value;
-                if (printInstructions)
-                    PrintQueue.Enqueue(PrintInstructions);
-            }
-        }
-        private static bool BPrintMark
-        {
-            get
-            {
-                return printMark;
-            }
-            set
-            {
-                printMark = value;
-                if (printMark)
-                    PrintQueue.Enqueue(PrintMark);
-            }
-        }
-        private static bool BPrintTime
-        {
-            get
-            {
-                return printTime;
-            }
-            set
-            {
-                printTime = value;
-                if (printTime)
-                {
-                    PrintQueue.Enqueue(PrintTime);
-                }
-            }
-        }
-        private static bool BPrintScreen
-        {
-            get
-            {
-                return printScreen;
-            }
-            set
-            {
-                printScreen = value;
-                if (printScreen)
-                    PrintQueue.Enqueue(PrintScreen);
-            }
-        }
-        private static bool BPrintStatus
-        {
-            get
-            {
-                return printStatus;
-            }
-            set
-            {
-                printStatus = value;
-                if (printStatus)
-                    PrintQueue.Enqueue(PrintStatus);
-            }
-        }
-        private static bool BPrintAllTimes
-        {
-            get
-            {
-                return printAllTimes;
-            }
-            set
-            {
-                printAllTimes = value;
-                if (printAllTimes)
-                    PrintQueue.Enqueue(PrintAllTimes);
-            }
-        }
-        private static bool BPrintTotalTime
-        {
-            get
-            {
-                return printTotalTime;
-            }
-            set
-            {
-                printTotalTime = value;
-                if (printTotalTime)
-                    PrintQueue.Enqueue(PrintTotalTime);
-            }
-        }
-        private static bool BSaveTimes
-        {
-            get
-            {
-                return saveTimes;
-            }
-            set
-            {
-                saveTimes = value;
-                if (saveTimes)
-                    PrintQueue.Enqueue(SaveTimes);
-            }
-        }
-
-        #endregion
-
-        static TimeSpan TotalTimeSpan;
-
-        static ConsoleColor CombineOnColor;
-        static ConsoleColor CombineOffColor;
-        static ConsoleColor MarkOnColor;
-        static ConsoleColor MarkOffColor;
-
-        static string MarkChar, CombineChar;
-
-        enum States
-        {
-            Off,
-            Watch,
-            Edit,
-            Combine,
-            Mark,
-            Comment,
-            Save,
-            View,
-            Exit
-        }
-        private static States programState;
-        private static States ProgramState
-        {
-            get
-            {
-                return programState;
-            }
-            set
-            {
-                programState = value;
-                BPrintStatus = true;
-                BPrintInstructions = true;
-            }
-        }
-        private static States PrevState;
 
         /// <summary>
         /// Represents the day this program was initialized
@@ -321,38 +76,25 @@ namespace TimeKeeper
             InputWatcher = new Thread(ReadKeys);
             DayWatcher = new Thread(ClockAndPrintWatcher);
 
-            //Setup printing queue
-            PrintQueue = new Queue<MethodInvoker>();
-
-            ///Set special colors
-            CombineOnColor = ConsoleColor.Cyan;
-            CombineOffColor = ConsoleColor.DarkGray;
-            MarkOnColor = ConsoleColor.Green;
-            MarkOffColor = ConsoleColor.Red;
-
-            ///Set speical marking characters
-            MarkChar = "*";
-            CombineChar = "+";
-
             CKI = new ConsoleKeyInfo();
 
             SM = new SessionManager();
             SM.LoadSessions(FILENAME);
 
             SM.Add(new Session());
-            currentSession = SM.selectedSession();
+            SM.currentSession = SM.SelectedSession();
 
-            ListIndex = currentSession.Times.Count - 1;
+            ListIndex = SM.currentSession.Times.Count - 1;
             ResetCombineIndices();
 
             ///Record the day this program started
-            currentSession.BeginSession();
+            SM.currentSession.BeginSession();
 
             Timer = new Stopwatch();
-            TotalTimeSpan = new TimeSpan();
 
-            BPrintScreen = true;
-            ProgramState = States.Off;
+            Printer.SetupPrinter(SM);
+            Printer.QueuePrintScreen();
+            ApplicationManager.ProgramState = ApplicationManager.States.Off;
             DayWatcher.Start();
             InputWatcher.Start();
 
@@ -363,20 +105,20 @@ namespace TimeKeeper
         /// </summary>
         public static void AddNewTime()
         {
-            if (currentSession.Times.Count > 0)
+            if (SM.currentSession.Times.Count > 0)
             {
                 Timer.Stop();
-                currentSession.Times[currentSession.Times.Count - 1].ended = DateTime.Now;
-                currentSession.Times[currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
-                currentSession.Times.Add(new TimeEntry(DateTime.Now));
+                SM.currentSession.Times[SM.currentSession.Times.Count - 1].ended = DateTime.Now;
+                SM.currentSession.Times[SM.currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
+                SM.currentSession.Times.Add(new TimeEntry(DateTime.Now));
                 Timer.Restart();
             }
             else
             {
-                currentSession.Times.Add(new TimeEntry(DateTime.Now));
+                SM.currentSession.Times.Add(new TimeEntry(DateTime.Now));
                 Timer.Start();
             }
-            BPrintTotalTime = true;
+            Printer.QueuePrintTotalTime();
         }
 
         /// <summary>
@@ -386,16 +128,16 @@ namespace TimeKeeper
         {
             TimeEntry mainEntry;
             int CombineIndex;
-            if (CombineIndexFirst == 0 && currentSession.Times[CombineIndexFirst].combine)
+            if (CombineIndexFirst == 0 && SM.currentSession.Times[CombineIndexFirst].combine)
             {
-                mainEntry = currentSession.Times[CombineIndexFirst];
+                mainEntry = SM.currentSession.Times[CombineIndexFirst];
             }
             else
             {
-                mainEntry = currentSession.Times[CombineIndexFirst + 1];
+                mainEntry = SM.currentSession.Times[CombineIndexFirst + 1];
             }
 
-            if (CombineIndexLast == currentSession.Times.Count - 1 && currentSession.Times[CombineIndexLast].combine)
+            if (CombineIndexLast == SM.currentSession.Times.Count - 1 && SM.currentSession.Times[CombineIndexLast].combine)
             {
                 CombineIndex = CombineIndexLast;
             }
@@ -403,10 +145,10 @@ namespace TimeKeeper
             {
                 CombineIndex = CombineIndexLast - 1;
             }
-            while (currentSession.Times[CombineIndex].combine && CombineIndex != currentSession.Times.IndexOf(mainEntry))
+            while (SM.currentSession.Times[CombineIndex].combine && CombineIndex != SM.currentSession.Times.IndexOf(mainEntry))
             {
-                mainEntry.timeSpent += currentSession.Times[CombineIndex].timeSpent;
-                currentSession.Times.RemoveAt(CombineIndex);
+                mainEntry.timeSpent += SM.currentSession.Times[CombineIndex].timeSpent;
+                SM.currentSession.Times.RemoveAt(CombineIndex);
                 CombineIndex--;
             }
 
@@ -425,20 +167,20 @@ namespace TimeKeeper
         /// </summary>
         private static void DeleteTime()
         {
-            if (ListIndex < currentSession.Times.Count && currentSession.Times.Count != 0)
+            if (ListIndex < SM.currentSession.Times.Count && SM.currentSession.Times.Count != 0)
             {
                 //Clear the last line off the buffer
                 int temp = ListIndex;
-                SetToBottom();
+                Printer.SetToBottom();
                 DecListAndTop();
                 Console.Write("".PadRight(Console.BufferWidth - 1));
                 ListIndex = temp;
                 Console.CursorLeft = 0;
                 Timer.Stop();
-                currentSession.Times.RemoveAt(ListIndex);
+                SM.currentSession.Times.RemoveAt(ListIndex);
                 Timer.Restart();
 
-                if (ListIndex == currentSession.Times.Count && ListIndex > 0)//If you deleted the last TimeEntry
+                if (ListIndex == SM.currentSession.Times.Count && ListIndex > 0)//If you deleted the last TimeEntry
                     DecListAndTop();
             }
         }
@@ -448,24 +190,24 @@ namespace TimeKeeper
         /// </summary>
         public static void FindCombineEdges()
         {
-            if (ListIndex != 0 && !currentSession.Times[ListIndex - 1].combine)
+            if (ListIndex != 0 && !SM.currentSession.Times[ListIndex - 1].combine)
             {
                 CombineIndexFirst = ListIndex - 1;
             }
             else
             {
-                while (!currentSession.Times[CombineIndexFirst].combine)
+                while (!SM.currentSession.Times[CombineIndexFirst].combine)
                 {
                     CombineIndexFirst++;
                 }
             }
-            if (ListIndex < currentSession.Times.Count - 1 && !currentSession.Times[ListIndex + 1].combine)
+            if (ListIndex < SM.currentSession.Times.Count - 1 && !SM.currentSession.Times[ListIndex + 1].combine)
             {
                 CombineIndexLast = ListIndex + 1;
             }
             else
             {
-                while (!currentSession.Times[CombineIndexLast].combine)
+                while (!SM.currentSession.Times[CombineIndexLast].combine)
                 {
                     CombineIndexLast--;
                 }
@@ -496,19 +238,19 @@ namespace TimeKeeper
              * need to check, at most, three indices.
              */
             #endregion
-            if (!currentSession.Times[ListIndex].combine)
+            if (!SM.currentSession.Times[ListIndex].combine)
             {
                 //If not at 0, and above location not combine
-                if (ListIndex - 1 > -1 && !currentSession.Times[ListIndex - 1].combine)
+                if (ListIndex - 1 > -1 && !SM.currentSession.Times[ListIndex - 1].combine)
                 {
                     //If not at end and location below not combine
-                    if (ListIndex + 1 < currentSession.Times.Count - 1 && !currentSession.Times[ListIndex + 1].combine)
+                    if (ListIndex + 1 < SM.currentSession.Times.Count - 1 && !SM.currentSession.Times[ListIndex + 1].combine)
                     {
                         return true;
                     }
                 }
                 //If you made it here, then there was only one entry
-                else if (currentSession.Times.Count == 1)
+                else if (SM.currentSession.Times.Count == 1)
                 {
                     return true;
                 }
@@ -516,315 +258,44 @@ namespace TimeKeeper
             return false;
         }
 
-        /// <summary>
-        /// Prints all Time Entries
-        /// </summary>
-        public static void PrintAllTimes()
-        {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.SetCursorPosition(0, 7);
-            Console.WriteLine("Time Spent\tComment");
 
-            //Print all the times and their associated marker
-            foreach (TimeEntry TI in currentSession.Times)
-            {
-                if (programState == States.Combine)
-                {
-                    Console.ForegroundColor = TI.combine ? CombineOnColor : CombineOffColor;
-                    Console.Write(CombineChar);
-                }
-                else
-                {
-                    Console.ForegroundColor = TI.marked ? MarkOnColor : MarkOffColor;
-                    Console.Write(MarkChar);
-                }
-                Console.ForegroundColor = ConsoleColor.White;
-                string temp = string.Empty;
-                if (TI.comment.Length != 0)
-                    temp = TI.comment.ToString().Remove(TI.comment.Length - 1);
-#if DEBUG
-                Console.WriteLine("{0}:{1}{2}",
-                    TI.timeSpent.Minutes.ToString().PadLeft(2, '0'), TI.timeSpent.Seconds.ToString().PadRight(TAB_PAD), temp.PadRight(COMMENT_PAD));
-#else
-                Console.WriteLine("{0}:{1}{2}",
-                    TI.timeSpent.Hours.ToString().PadLeft(2, '0'), TI.timeSpent.Minutes.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_PAD));
-#endif
-            }
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Uses ListIndex to print the Combine mark for the TimeEntry
-        /// </summary>
-        public static void PrintCombineMark()
-        {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.CursorLeft = MARK_LEFT;
-            Console.ForegroundColor = currentSession.Times[ListIndex].combine ? CombineOnColor : CombineOffColor;
-            Console.Write(CombineChar);
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Prints case-related instructions
-        /// </summary>
-        private static void PrintInstructions()
-        {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            string l1p1 = "", l1p2 = "", l2p1 = "", l2p2 = "", l3p1 = "", l3p2 = "";
-            Console.SetCursorPosition(0, INSTRUCTIONS_TOP);
-            Console.WriteLine("INSTRUCTIONS:");
-            switch (ProgramState)
-            {
-                //If necessary apply '\t' only to part 1
-                //Space, Escape, Delete, E, R, S, P, M, C, Up/Down, Enter
-                #region Instruction comments
-                /*
-                 * C: C to enter Combine Mode
-                 * C: C to mark the end or range, then the start
-                 * C: C to mark a combine a range of contiguous entries
-                 * Delete: Delete to delete an entry
-                 * E: E to enter Edit Mode
-                 * E: E to exit Edit Mode
-                 * Enter: Enter to Create/Edit Comment
-                 * Enter: Enter to Confirm Changes
-                 * Enter: Enter to confirm Combine range
-                 * Enter: Enter to leave Mark Mode
-                 * Escape: Escape to Save/Exit
-                 * Escape: Escape to leave Combine Mode without combining
-                 * M: M to enter Mark Mode
-                 * M: M to mark/unmark an entry to count toward total time
-                 * P: P to pause current timer
-                 * P: P to start/resume current timer
-                 * R: R to refresh
-                 * S: S to save
-                 * Space: Space to add and start new timer
-                 * Up/Down Arrows: Up/Down Arrows to move
-                 */
-                #endregion
-                case States.Combine:
-                    l1p1 = "Up/Down Arrows to move,";
-                    l2p1 = "C to mark the range: end then start";
-                    l2p2 = "Enter to confirm Combine range,";
-                    l3p1 = "Escape to leave without combining";
-                    break;
-                case States.Comment:
-                    l1p1 = "Enter to Confirm Changes";
-                    l2p1 = "";
-                    l3p1 = "";
-                    break;
-                case States.Edit:
-                    l1p1 = "C to enter Combine Mode (nope),";
-                    l1p2 = "Delete to delete an entry";
-                    l2p1 = "E to exit Edit Mode,";
-                    l2p2 = "Enter to Create/Edit Comment,";
-                    l3p1 = "M to enter Mark Mode,";
-                    l3p2 = "Up/Down Arrows to move, S to Save";
-                    break;
-                case States.Mark:
-                    l1p1 = "Up/Down Arrows to move,";
-                    l1p2 = "M to mark/unmark an entry";
-                    l2p1 = "to count toward total time,";
-                    l2p2 = "R to refresh,";
-                    l3p1 = "Enter to leave Mark Mode";
-                    break;
-                case States.Off:
-                    l1p1 = "P to Pause/Unpause,";
-                    l1p2 = "R to refresh,";
-                    l2p1 = "E to enter Edit Mode,";
-                    l2p2 = "S to save,";
-                    l3p1 = "Escape to Save/Exit";
-                    l3p2 = "V to View Sessions";
-                    break;
-                case States.Save:
-                    l1p1 = "Follow the";
-                    l2p1 = "on-screen";
-                    l3p1 = "instructions";
-                    break;
-                case States.View:
-                    l1p1 = "Left/Right Arrows to view Sessions";
-                    l1p2 = "Up/Down Arrows to scroll current session";
-                    l2p1 = "Esc to return to previous screen";
-                    break;
-                case States.Watch:
-                    l1p1 = "Space to Add a record time,";
-                    l1p2 = "P to Pause/Unpause,";
-                    l2p1 = "R to refresh,";
-                    l2p2 = "E to enter Edit Mode,";
-                    l3p1 = "S to save,";
-                    l3p2 = "Escape to Save/Exit";
-                    break;
-            }
-            /*
-             * To explain the seemingly random numbers in the PadRight methods:
-             * 51 is the longest possible line so far
-             * 14 is the extra spaces in the \t that aren't counted...for some reason
-             */
-            Console.WriteLine(
-                l1p1.PadRight(INSTRUCTIONS_PAD) + l1p2.PadRight(INSTRUCTIONS_PAD) + "\n" +
-                l2p1.PadRight(INSTRUCTIONS_PAD) + l2p2.PadRight(INSTRUCTIONS_PAD) + "\n" +
-                l3p1.PadRight(INSTRUCTIONS_PAD) + l3p2.PadRight(INSTRUCTIONS_PAD) + "\n" +
-                "------------------------------------".PadRight(Console.BufferWidth));
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Uses ListIndex to print a TimeEntry's mark pip.
-        /// </summary>
-        public static void PrintMark()
-        {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.CursorLeft = MARK_LEFT;
-            Console.ForegroundColor = currentSession.Times[ListIndex].marked ? MarkOnColor : MarkOffColor;
-            Console.Write(MarkChar);
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Clears and prints the entire screen
-        /// </summary>
-        public static void PrintScreen()
-        {
-            Console.Clear();
-            Console.SetCursorPosition(0, 0);
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("TIME KEEPER");
-            Console.ForegroundColor = ConsoleColor.White;
-            BPrintInstructions = true;
-            BPrintStatus = true;
-            BPrintTotalTime = true;
-            BPrintAllTimes = true;
-            SetToBottom();
-        }
-
-        /// <summary>
-        /// Updates the program status section of the screen
-        /// </summary>
-        public static void PrintStatus()
-        {
-            //Cursor: 2,8   
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.SetCursorPosition(0, STATUS_TOP);
-            Console.Write("Status: ");
-            switch (ProgramState)
-            {
-                case States.Combine:
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    break;
-                case States.Watch:
-                case States.Mark:
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    break;
-                case States.Edit:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    break;
-                case States.Comment:
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    break;
-                case States.Save:
-                    Console.ForegroundColor = ConsoleColor.Magenta;
-                    break;
-                case States.View:
-                case States.Off:
-                case States.Exit:
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    break;
-            }
-            //Just enough to clear the longest state name
-            Console.Write(ProgramState.ToString().PadRight(7));
-            Console.ForegroundColor = ConsoleColor.White;
-
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Uses ListIndex to print a TimeEntry to the screen
-        /// </summary>
-        public static void PrintTime()
-        {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            PrintMark();
-            Console.CursorLeft = TIME_LEFT;
-            string temp = "";
-            if (currentSession.Times[ListIndex].comment.Length != 0)
-                temp = currentSession.Times[listIndex].comment.ToString().Remove(currentSession.Times[ListIndex].comment.Length - 1);
-#if DEBUG
-            Console.WriteLine("{0}:{1}{2}",
-                currentSession.Times[ListIndex].timeSpent.Minutes.ToString().PadLeft(2, '0'),
-                currentSession.Times[ListIndex].timeSpent.Seconds.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_PAD));
-#else
-            Console.WriteLine("{0}:{1}{2}",
-                currentSession.Times[ListIndex].timeSpent.Hours.ToString().PadLeft(2, '0'),
-                currentSession.Times[ListIndex].timeSpent.Minutes.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_PAD));
-#endif
-            Console.SetCursorPosition(left, top);
-        }
-
-        /// <summary>
-        /// Updates the Total Time section of the screen
-        /// </summary>
-        public static void PrintTotalTime()
-        {
-            TallyTime();
-            //Cursor: 2,16
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.CursorTop = STATUS_TOP;
-            Console.CursorLeft = TOTAL_LEFT;
-
-            //Console.Write("Total Time: {0}:{1} ", TotalTimeSpan.Hours, TotalTimeSpan.Minutes);
-            Console.Write("Total Time: {0}".PadRight(INSTRUCTIONS_PAD), TotalTimeSpan.Duration());
-
-            Console.SetCursorPosition(left, top);
-        }
 
         /// <summary>
         /// Reads particular key inputs for UI controls
         /// </summary>
         public static void ReadKeys()
         {
-            while (ProgramState != States.Exit)
+            while (ApplicationManager.ProgramState != ApplicationManager.States.Exit)
             {
-                switch (ProgramState)
+                switch (ApplicationManager.ProgramState)
                 {
                     #region CKI Program States
-                    case States.Off:
-                    case States.Watch:
-                    case States.Edit:
-                    case States.Combine:
-                    case States.View:
-                    case States.Mark:
+                    case ApplicationManager.States.Off:
+                    case ApplicationManager.States.Watch:
+                    case ApplicationManager.States.Edit:
+                    case ApplicationManager.States.Combine:
+                    case ApplicationManager.States.View:
+                    case ApplicationManager.States.Mark:
                         CKI = Console.ReadKey(true);
                         break;
-                    case States.Comment:
+                    case ApplicationManager.States.Comment:
                         CKI = Console.ReadKey();
                         switch (CKI.Key)
                         {
                             case ConsoleKey.Backspace:
-                                if (currentSession.Times[ListIndex].comment.Length > 0)
+                                if (SM.currentSession.Times[ListIndex].comment.Length > 0)
                                 {
                                     Console.Write(" ");
                                     Console.CursorLeft--;
-                                    currentSession.Times[ListIndex].comment.Remove(currentSession.Times[ListIndex].comment.Length - 1, 1);
+                                    SM.currentSession.Times[ListIndex].comment.Remove(SM.currentSession.Times[ListIndex].comment.Length - 1, 1);
                                 }
                                 break;
                             default:
-                                currentSession.Times[ListIndex].comment.Append(CKI.KeyChar);
+                                SM.currentSession.Times[ListIndex].comment.Append(CKI.KeyChar);
                                 break;
                         }
                         break;
-                    #endregion
+                        #endregion
                 }
 
                 switch (CKI.Key)
@@ -834,119 +305,118 @@ namespace TimeKeeper
                         break;
                     #region Delete
                     case ConsoleKey.Delete://Delete a TimeInfo
-                        switch (ProgramState)
-                            {
-                                case States.View:
-                                    SM.RemoveSession();
-                                    break;
-                            }
+                        switch (ApplicationManager.ProgramState)
+                        {
+                            case ApplicationManager.States.View:
+                                SM.RemoveSession();
+                                break;
+                        }
                         break;
                     #endregion
                     #region Enter
                     case ConsoleKey.Enter:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Combine:
+                            case ApplicationManager.States.Combine:
                                 //TODO: Get combine marking working
                                 CombineMarked();
                                 ResetCombineIndices();
-                                BPrintScreen = true;
-                                ProgramState = PrevState;
+                                Printer.QueuePrintScreen();
+                                ApplicationManager.ProgramState = ApplicationManager.PrevState;
                                 break;
-                            case States.Comment:
+                            case ApplicationManager.States.Comment:
                                 //finished writing/editing
-                                ProgramState = States.Edit;
+                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
-                            case States.Edit:
-                                if (ListIndex < currentSession.Times.Count && currentSession.Times.Count != 0)
+                            case ApplicationManager.States.Edit:
+                                if (ListIndex < SM.currentSession.Times.Count && SM.currentSession.Times.Count != 0)
                                 {
-                                    Console.CursorLeft = COMMENT_LEFT;
+                                    Console.CursorLeft = Printer.COMMENT_POINT;
                                     //Remove the comment from the screen buffer
                                     string temp = string.Empty;
-                                    if (currentSession.Times[ListIndex].comment.Length != 0)
-                                        temp = currentSession.Times[ListIndex].comment.ToString().Remove(currentSession.Times[ListIndex].comment.Length - 1);
+                                    if (SM.currentSession.Times[ListIndex].comment.Length != 0)
+                                        temp = SM.currentSession.Times[ListIndex].comment.ToString().Remove(SM.currentSession.Times[ListIndex].comment.Length - 1);
                                     Console.Write(" ".PadRight(temp.Length));
-                                    Console.CursorLeft = COMMENT_LEFT;
-                                    currentSession.Times[ListIndex].comment.Clear();
+                                    Console.CursorLeft = Printer.COMMENT_POINT;
+                                    SM.currentSession.Times[ListIndex].comment.Clear();
 
                                     //begin editing
-                                    ProgramState = States.Comment;
+                                    ApplicationManager.ProgramState = ApplicationManager.States.Comment;
                                 }
                                 break;
-                            case States.Mark:
-                                ProgramState = States.Edit;
+                            case ApplicationManager.States.Mark:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
-                            case States.Save:
-                                ProgramState = States.Exit;
+                            case ApplicationManager.States.Save:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Exit;
                                 break;
                         }
                         break;
                     #endregion
                     #region Spacebar
                     case ConsoleKey.Spacebar:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Watch:
+                            case ApplicationManager.States.Watch:
                                 AddNewTime();
                                 ListIndex++;
-                                BPrintTime = true;
-                                BPrintTotalTime = true;
+                                Printer.QueuePrintTime();
+                                Printer.QueuePrintTotalTime();
                                 break;
                         }
                         break;
                     #endregion
                     #region Escape
                     case ConsoleKey.Escape://Close program
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                            case States.Watch:
+                            case ApplicationManager.States.Off:
+                            case ApplicationManager.States.Watch:
                                 //write out times/comments to file
-                                if (currentSession.Times.Count > 0)
+                                if (SM.currentSession.Times.Count > 0)
                                 {
-                                    ProgramState = States.Save;
-                                    SetToBottom();
+                                    ApplicationManager.ProgramState = ApplicationManager.States.SaveAndExit;
+                                    Printer.SetToBottom();
                                     LastLine = Console.CursorTop;
-                                    BSaveTimes = true;
-                                    PrevState = States.Exit;
+                                    SaveTimes();
                                 }
                                 else
                                 {
-                                    ProgramState = States.Exit;
+                                    ApplicationManager.ProgramState = ApplicationManager.States.Exit;
                                 }
                                 break;
-                            case States.Combine:
-                                ProgramState = States.Edit;
+                            case ApplicationManager.States.Combine:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
-                            case States.View:
-                                ProgramState = States.Off;                                
+                            case ApplicationManager.States.View:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Off;
                                 break;
                         }
                         break;
                     #endregion
-                    #region C: Combine currentSession.Times
+                    #region C: Combine SM.currentSession.Times
                     /*
                     case ConsoleKey.C:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Edit:
-                                if (currentSession.Times.Count > 0)
+                            case ApplicationManager.States.Edit:
+                                if (SM.currentSession.Times.Count > 0)
                                 {
-                                    ProgramState = States.Combine;
+                                    ApplicationManager.ProgramState = ApplicationManager.States.Combine;
                                     ResetCombineIndices();
                                     PrintScreen();
                                     SetToBottom();
                                 }
                                 break;
-                            case States.Combine:
-                                if (ListIndex < currentSession.Times.Count && currentSession.Times.Count != 0)
+                            case ApplicationManager.States.Combine:
+                                if (ListIndex < SM.currentSession.Times.Count && SM.currentSession.Times.Count != 0)
                                 {
-                                    if (currentSession.Times[ListIndex].Combine ||
-                                        (!currentSession.Times[CombineIndexFirst].Combine || !currentSession.Times[CombineIndexLast].Combine))
+                                    if (SM.currentSession.Times[ListIndex].Combine ||
+                                        (!SM.currentSession.Times[CombineIndexFirst].Combine || !SM.currentSession.Times[CombineIndexLast].Combine))
                                     {
-                                        int Last = currentSession.Times.Count - 1;
-                                        currentSession.Times[ListIndex].Combine = !currentSession.Times[ListIndex].Combine;
-                                        if (currentSession.Times[ListIndex].Combine)
+                                        int Last = SM.currentSession.Times.Count - 1;
+                                        SM.currentSession.Times[ListIndex].Combine = !SM.currentSession.Times[ListIndex].Combine;
+                                        if (SM.currentSession.Times[ListIndex].Combine)
                                         {
                                             if (CombineIndexLast ==Last)
                                             {
@@ -960,13 +430,13 @@ namespace TimeKeeper
                                         }
                                         else
                                         {
-                                            if (!currentSession.Times[CombineIndexFirst].Combine)
+                                            if (!SM.currentSession.Times[CombineIndexFirst].Combine)
                                             {
-                                                CombineIndexFirst = currentSession.Times.Count - 1;
+                                                CombineIndexFirst = SM.currentSession.Times.Count - 1;
                                             }
-                                            else if (!currentSession.Times[CombineIndexLast].Combine)
+                                            else if (!SM.currentSession.Times[CombineIndexLast].Combine)
                                             {
-                                                CombineIndexLast = currentSession.Times.Count - 1;
+                                                CombineIndexLast = SM.currentSession.Times.Count - 1;
                                             }
                                         }
 
@@ -982,38 +452,35 @@ namespace TimeKeeper
                     #endregion
                     #region E: Edit
                     case ConsoleKey.E://Pause/edit 
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                                ProgramState = States.Edit;
-                                PrevState = States.Off;
+                            case ApplicationManager.States.Off:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
-                            case States.Watch:
-                                ProgramState = States.Edit;
-                                PrevState = States.Watch;
+                            case ApplicationManager.States.Watch:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
-                            case States.Edit:
-                                ProgramState = PrevState;
-                                SetToBottom();
+                            case ApplicationManager.States.Edit:
+                                ApplicationManager.ProgramState = ApplicationManager.PrevState;
+                                Printer.SetToBottom();
                                 break;
                         }
                         break;
                     #endregion
                     #region M: Marking
                     case ConsoleKey.M:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Edit:
-                                ProgramState = States.Mark;
+                            case ApplicationManager.States.Edit:
+                                ApplicationManager.ProgramState = ApplicationManager.States.Mark;
                                 break;
-                            case States.Mark:
-                                if (ListIndex < currentSession.Times.Count && currentSession.Times.Count != 0)
+                            case ApplicationManager.States.Mark:
+                                if (ListIndex < SM.currentSession.Times.Count && SM.currentSession.Times.Count != 0)
                                 {
-                                    currentSession.Times[ListIndex].marked = !currentSession.Times[ListIndex].marked;
-                                    BPrintMark = true;
-                                    Console.CursorLeft = MARK_LEFT;
-                                    TallyTime();
-                                    BPrintTotalTime = true;
+                                    SM.currentSession.Times[ListIndex].marked = !SM.currentSession.Times[ListIndex].marked;
+                                    Printer.QueuePrintMark();
+                                    Console.CursorLeft = Printer.MARK_LEFT;
+                                    Printer.QueuePrintTotalTime();
                                 }
                                 break;
                         }
@@ -1021,33 +488,33 @@ namespace TimeKeeper
                     #endregion
                     #region P: Pause/Unpause
                     case ConsoleKey.P:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                                if (currentSession.Times.Count != 0)
+                            case ApplicationManager.States.Off:
+                                if (SM.currentSession.Times.Count != 0)
                                     Timer.Start();
-                                ProgramState = States.Watch;
+                                ApplicationManager.ProgramState = ApplicationManager.States.Watch;
                                 break;
-                            case States.Watch:
-                                if (currentSession.Times.Count != 0)
+                            case ApplicationManager.States.Watch:
+                                if (SM.currentSession.Times.Count != 0)
                                     Timer.Stop();
-                                ProgramState = States.Off;
+                                ApplicationManager.ProgramState = ApplicationManager.States.Off;
                                 break;
                         }
                         break;
                     #endregion
                     #region R: Refresh
                     case ConsoleKey.R:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                            case States.Watch:
-                            case States.Mark:
-                            case States.Edit:
+                            case ApplicationManager.States.Off:
+                            case ApplicationManager.States.Watch:
+                            case ApplicationManager.States.Mark:
+                            case ApplicationManager.States.Edit:
                                 int left = Console.CursorLeft;
                                 LastLine = Console.CursorTop;
                                 int index = ListIndex;
-                                BPrintScreen = true;
+                                Printer.QueuePrintScreen();
                                 Console.SetCursorPosition(left, LastLine);
                                 ListIndex = index;
                                 break;
@@ -1056,20 +523,17 @@ namespace TimeKeeper
                     #endregion
                     #region S: Save
                     case ConsoleKey.S:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                            case States.Watch:
+                            case ApplicationManager.States.Off:
+                            case ApplicationManager.States.Watch:
                                 //write out times/comments to file
-                                if (currentSession.Times.Count > 0)
+                                if (SM.currentSession.Times.Count > 0)
                                 {
-                                    PrevState = ProgramState;
-                                    ProgramState = States.Save;
-                                    SetToBottom();
+                                    ApplicationManager.ProgramState = ApplicationManager.States.Save;
                                     LastLine = Console.CursorTop;
-                                    BSaveTimes = true;
-                                    SetToBottom();
-                                    ProgramState = PrevState;
+                                    SaveTimes();
+                                    ApplicationManager.ProgramState = ApplicationManager.PrevState;
                                 }
                                 break;
                         }
@@ -1077,13 +541,12 @@ namespace TimeKeeper
                     #endregion
                     #region V: View Sessions
                     case ConsoleKey.V:
-                        switch (programState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Off:
-                                PrevState = ProgramState;
-                                ProgramState = States.View;
-                                currentSession = SM.selectedSession();
-                                BPrintAllTimes = true;
+                            case ApplicationManager.States.Off:
+                                ApplicationManager.ProgramState = ApplicationManager.States.View;
+                                SM.currentSession = SM.SelectedSession();
+                                Printer.QueuePrintAllTimes();
                                 break;
                         }
                         break;
@@ -1091,9 +554,9 @@ namespace TimeKeeper
                     #region Arrows
                     #region Up/Down
                     case ConsoleKey.UpArrow:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Combine:
+                            case ApplicationManager.States.Combine:
                             /*
                             if (ListIndex > CombineIndexFirst)
                             {
@@ -1101,19 +564,19 @@ namespace TimeKeeper
                             }
                             break;
                             */
-                            case States.Mark:
-                            case States.Edit:
+                            case ApplicationManager.States.Mark:
+                            case ApplicationManager.States.Edit:
                                 if (ListIndex > 0)
                                     DecListAndTop();
                                 break;
-                            case States.View:
+                            case ApplicationManager.States.View:
                                 break;
                         }
                         break;
                     case ConsoleKey.DownArrow:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Combine:
+                            case ApplicationManager.States.Combine:
                             /*
                             if (ListIndex < CombineIndexLast)
                             {
@@ -1121,45 +584,45 @@ namespace TimeKeeper
                             }
                             break;
                             */
-                            case States.Mark:
-                            case States.Edit:
-                                if (ListIndex < currentSession.Times.Count - 1)
+                            case ApplicationManager.States.Mark:
+                            case ApplicationManager.States.Edit:
+                                if (ListIndex < SM.currentSession.Times.Count - 1)
                                     IncListAndTop();
                                 break;
-                            case States.View:
+                            case ApplicationManager.States.View:
                                 break;
                         }
                         break;
                     #endregion
                     #region Left/Right
                     case ConsoleKey.LeftArrow:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Combine:
-                            case States.Edit:
+                            case ApplicationManager.States.Combine:
+                            case ApplicationManager.States.Edit:
                                 //Set Console.CursorLeft to specific values for the console
                                 break;
-                            case States.View:
-                                currentSession = SM.PreviousSession();
-                                BPrintAllTimes = true;
+                            case ApplicationManager.States.View:
+                                SM.currentSession = SM.PreviousSession();
+                                Printer.QueuePrintAllTimes();
                                 break;
                         }
                         break;
                     case ConsoleKey.RightArrow:
-                        switch (ProgramState)
+                        switch (ApplicationManager.ProgramState)
                         {
-                            case States.Combine:
-                            case States.Edit:
+                            case ApplicationManager.States.Combine:
+                            case ApplicationManager.States.Edit:
                                 //Set Console.CursorLeft to specific values for the console
                                 break;
-                            case States.View:
-                                currentSession = SM.NextSession();
-                                BPrintAllTimes = true;
+                            case ApplicationManager.States.View:
+                                SM.currentSession = SM.NextSession();
+                                Printer.QueuePrintAllTimes();
                                 break;
                         }
                         break;
-                    #endregion
-                    #endregion
+                        #endregion
+                        #endregion
                 }
             }
         }
@@ -1171,7 +634,7 @@ namespace TimeKeeper
         private static void ResetCombineIndices()
         {
             CombineIndexFirst = 0;
-            CombineIndexLast = currentSession.Times.Count - 1;
+            CombineIndexLast = SM.currentSession.Times.Count - 1;
         }
 
         /// <summary>
@@ -1181,139 +644,74 @@ namespace TimeKeeper
         {
             //Stop the timer
             Timer.Stop();
-            bool ValidInput = true;
 
-            #region Do you want to save your latest time?
-            do
+            //Do you want to save your latest time?
+            Printer.QueuePromptUser("Do you want to save your latest time? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
             {
-                Console.CursorTop = LastLine + 1;
-                Console.WriteLine("Do you want to save your latest time? (y/n)".PadRight(Console.BufferWidth - 1));
-                if (!ValidInput)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("\nInvalid Input: try again.".PadRight(Console.BufferWidth - 1));
-                    Console.ForegroundColor = ConsoleColor.White;
-
-                    Console.CursorTop = LastLine + 2;
-                }
-
-                CKI = Console.ReadKey(true);
-                //to clean the screen
-                Console.CursorTop = LastLine + 1;
-                if (ValidInput)
-                {
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                }
-                else
-                {
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                }
-
-                switch (CKI.Key)
+                switch (CK)
                 {
                     case ConsoleKey.Y:
-                        currentSession.Times[currentSession.Times.Count - 1].ended = DateTime.Now;
-                        currentSession.Times[currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
+                        SM.currentSession.Times[SM.currentSession.Times.Count - 1].ended = DateTime.Now;
+                        SM.currentSession.Times[SM.currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
                         ListIndex++;
-                        ValidInput = true;
                         break;
                     case ConsoleKey.N:
-                        currentSession.Times.RemoveAt(currentSession.Times.Count - 1);
-                        ValidInput = true;
+                        SM.currentSession.Times.RemoveAt(SM.currentSession.Times.Count - 1);
                         break;
                     default:
-                        ValidInput = false;
                         break;
                 }
-            } while (!ValidInput);
-            #endregion
-            PrintScreen();
-            #region Do you want save the time sheet?
-            do
+            }));
+
+
+            Printer.QueuePrintScreen().PrintCompleteEvent += new PrintTask.PrintCompleteEventHandler(delegate ()
             {
-                Console.CursorTop = LastLine + 1;
-                Console.WriteLine("Do you want to save? (y/n)".PadRight(Console.BufferWidth - 1));
-                if (!ValidInput)
+                //Do you want save the time sheet?
+                Printer.QueuePromptUser("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("\nInvalid Input: try again.".PadRight(Console.BufferWidth - 1));
-                    Console.ForegroundColor = ConsoleColor.White;
+                    switch (CK)
+                    {
+                        case ConsoleKey.Y:
+                            SM.Add(SM.currentSession);
+                            SM.SaveSessions(FILENAME);
+                            break;
+                        default:
+                            break;
+                    }
 
-                    Console.CursorTop = LastLine + 2;
-                }
-                CKI = Console.ReadKey(true);
-
-                //to clean the screen
-                Console.CursorTop = LastLine + 1;
-                if (ValidInput)
-                {
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                }
-                else
-                {
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                    Console.WriteLine("".PadRight(Console.BufferWidth));
-                }
-
-
-                switch (CKI.Key)
-                {
-                    case ConsoleKey.Y:
-                        ValidInput = true;
-                        SM.Add(currentSession);
-                        SM.SaveSessions(FILENAME);
-                        break;
-                    case ConsoleKey.N:
-                        ValidInput = true;
-                        if (PrevState == States.Exit)
-                            ProgramState = States.Exit;
-                        return;
-                    default:
-                        ValidInput = false;
-                        break;
-                }
-            } while (!ValidInput);
-            #endregion
-            if (PrevState == States.Exit)
-                ProgramState = States.Exit;
+                    if (ApplicationManager.PrevState == ApplicationManager.States.SaveAndExit)
+                        ApplicationManager.ProgramState = ApplicationManager.States.Exit;
+                }));
+            });
         }
 
-        /// <summary>
-        /// Sets the Cursor's Top location to the last line in the console.
-        /// </summary>
-        public static void SetToBottom()
+        public static bool CheckForValidSaveInput(ConsoleKey CK)
         {
-            ListIndex = currentSession.Times.Count - 1;
-        }
-
-        /// <summary>
-        /// Takes quick inventory of the total time spent so far.
-        /// Useful when deleting TimeEntries.
-        /// </summary>
-        public static void TallyTime()
-        {
-            if (currentSession.Times.Count != 0)
+            bool ValidInput = true;
+            switch (CKI.Key)
             {
-                TotalTimeSpan = TimeSpan.Zero;
-                foreach (TimeEntry TI in currentSession.Times)
-                {
-                    if (TI.marked)
-                        TotalTimeSpan += TI.timeSpent;
-                }
+                case ConsoleKey.Y:
+                case ConsoleKey.N:
+                    break;
+                default:
+                    ValidInput = false;
+                    break;
             }
+            return ValidInput;
         }
+
+
 
         /// <summary>
         /// Watches the day and the Timer StopWatch
         /// </summary>
         public static void ClockAndPrintWatcher()
         {
-            while (ProgramState != States.Exit)
+            while (ApplicationManager.ProgramState != ApplicationManager.States.Exit)
             {
                 WatchForNewDay();
                 WatchTimer();
-                WatchForPrintTasks();
+                Printer.WatchForPrintTasks();
             }
         }
 
@@ -1332,52 +730,33 @@ namespace TimeKeeper
             {
                 newDayOccurred = true;
                 AddNewTime();
-                PrintTotalTime();
-                int length = currentSession.Times.Count - 1;//Last TimeEntry
+                Printer.QueuePrintTotalTime();
+                int length = SM.currentSession.Times.Count - 1;//Last TimeEntry
                 if (length > 0)
                 {
                     //Set a char array equal to the length of the second-to-last time entry's comment +
                     //the length of "new Day!" + 1 for a space
-                    char[] temp = new char[currentSession.Times[length - 1].comment.Length + newDay.Length + 1];
+                    char[] temp = new char[SM.currentSession.Times[length - 1].comment.Length + newDay.Length + 1];
                     //Copy New Day! to the beginning registers of temp
                     newDay.CopyTo(0, temp, 0, newDay.Length);
                     //The register after "New Day!" should be a space: ' '
                     temp[newDay.Length] = ' ';
                     //Then, copy the full length of the second-to-last index
-                    currentSession.Times[length - 1].comment.CopyTo(0, temp, newDay.Length + 1, currentSession.Times[length - 1].comment.Length);
+                    SM.currentSession.Times[length - 1].comment.CopyTo(0, temp, newDay.Length + 1, SM.currentSession.Times[length - 1].comment.Length);
                     //Finally, add the entire comment to the newest time entry
-                    currentSession.Times[length].comment.Append(temp);
+                    SM.currentSession.Times[length].comment.Append(temp);
                 }
             }
-            if (newDayOccurred && ProgramState == States.Watch)
+            if (newDayOccurred && ApplicationManager.ProgramState == ApplicationManager.States.Watch)
             {
-                BPrintTime = true;
+                Printer.QueuePrintTime();
                 newDayOccurred = false;
-                SetToBottom();
+                Printer.SetToBottom();
             }
             Previous = Now;
         }
 
-        /// <summary>
-        /// Checks printing booleans set to true and does
-        /// those tasks
-        /// </summary>
-        public static void WatchForPrintTasks()
-        {
-            if (PrintQueue.Count != 0)
-            {
-                MethodInvoker temp = PrintQueue.Dequeue();
-                temp.Invoke();
-                switch (programState)
-                {
-                    case States.Comment:
-                        break;
-                    default:
-                        SetToBottom();
-                        break;
-                }
-            }
-        }
+
 
         /// <summary>
         /// Checks for time changes on the Timer StopWatch,
@@ -1392,17 +771,17 @@ namespace TimeKeeper
             if (prevTime.Minutes != curTime.Minutes)
 #endif
                 TimerChanged = true;
-            switch (programState)
+            switch (ApplicationManager.ProgramState)
             {
-                case States.Watch:
+                case ApplicationManager.States.Watch:
                     if (TimerChanged)
                     {
-                        listIndex = currentSession.Times.Count - 1;
-                        currentSession.Times[currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
-                        SetToBottom();
-                        BPrintTime = true;
-                        if (currentSession.Times[currentSession.Times.Count - 1].marked)
-                            BPrintTotalTime = true;
+                        listIndex = SM.currentSession.Times.Count - 1;
+                        SM.currentSession.Times[SM.currentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
+                        Printer.SetToBottom();
+                        Printer.QueuePrintTime();
+                        if (SM.currentSession.Times[SM.currentSession.Times.Count - 1].marked)
+                            Printer.QueuePrintTotalTime();
                         TimerChanged = false;
                     }
                     break;

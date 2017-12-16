@@ -15,6 +15,14 @@ namespace TimeKeeper
 
         private List<Session> sessions;
         private int internal_index;
+        /// <summary>
+        /// represents the newest session
+        /// </summary>
+        public Session currentSession;
+        /// <summary>
+        /// represents the currently viewed session
+        /// </summary>
+        public Session viewingSession;
 
         /// <summary>
         /// Instantiates a SessionManager
@@ -40,7 +48,7 @@ namespace TimeKeeper
         /// will point to the most recently-created session
         /// </summary>
         /// <returns>The most recently-selected Session</returns>
-        public Session selectedSession()
+        public Session SelectedSession()
         {
             if (sessions.Count > 0)
                 return sessions[internal_index];
@@ -55,7 +63,7 @@ namespace TimeKeeper
         public Session NextSession()
         {
             internal_index = (internal_index + 1) % sessions.Count;
-            return selectedSession();
+            return SelectedSession();
         }
 
         /// <summary>
@@ -65,7 +73,7 @@ namespace TimeKeeper
         public Session PreviousSession()
         {
             internal_index = (internal_index - 1) < 0 ? sessions.Count - 1 : internal_index - 1;
-            return selectedSession();
+            return SelectedSession();
         }
 
         /// <summary>
@@ -108,6 +116,24 @@ namespace TimeKeeper
                 internal_index = sessions.Count - 1;
             }
             stream.Close();
+        }
+
+        /// <summary>
+        /// Takes quick inventory of the total time spent so far.
+        /// Useful when deleting TimeEntries.
+        /// </summary>
+        public TimeSpan TallyTime()
+        {
+            TimeSpan TotalTimeSpan = TimeSpan.Zero;
+            if (currentSession.Times.Count != 0)
+            {
+                foreach (TimeEntry TI in currentSession.Times)
+                {
+                    if (TI.marked)
+                        TotalTimeSpan += TI.timeSpent;
+                }
+            }
+            return TotalTimeSpan;
         }
     }
 }
