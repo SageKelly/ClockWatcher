@@ -10,6 +10,7 @@ namespace TimeKeeper
     public static class Printer
     {
         private static Queue<PrintTask> PrinterQueue;
+        private static Queue<string> PrinterHistory;
         private static SessionManager SeshMan;
 
         #region CONSTANTS
@@ -32,7 +33,7 @@ namespace TimeKeeper
             }
         }
 
-        private static Widget status = new Widget(6, 8, 7);
+        private static Widget status = new Widget(0, 6, 7);
 
         /// <summary>
         /// Represents the location of the status section of the screen.
@@ -45,7 +46,7 @@ namespace TimeKeeper
             }
         }
 
-        private static Widget totalPoint = new Widget(16, 8);
+        private static Widget totalPoint = new Widget(16, 6);
 
         /// <summary>
         /// Represents the location of the Total Time on the screen.
@@ -108,6 +109,7 @@ namespace TimeKeeper
 
             //Setup printing queue
             PrinterQueue = new Queue<PrintTask>();
+            PrinterHistory = new Queue<string>();
 
             ///Set special colors
             CombineOnColor = ConsoleColor.Cyan;
@@ -174,8 +176,9 @@ namespace TimeKeeper
         /// <param name="InputChecker">The method to check the user's response</param>
         public static void QueuePromptUser(string Message, Func<ConsoleKey, bool> InputChecker, Action<ConsoleKey> FinalMethod)
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PromptUser", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PromptUser", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { Message, InputChecker, FinalMethod });
+            PrinterHistory.Enqueue(pTask.MethodName);
             PrinterQueue.Enqueue(pTask);
         }
 
@@ -185,7 +188,7 @@ namespace TimeKeeper
         /// </summary>
         public static void WatchForPrintTasks()
         {
-            if (PrinterQueue.Count != 0)
+            while (PrinterQueue.Count != 0)
             {
                 int left = Console.CursorLeft;
                 int top = Console.CursorTop;
@@ -194,9 +197,9 @@ namespace TimeKeeper
 
                 switch (ApplicationManager.ProgramState)
                 {
-                    case ApplicationManager.States.Comment:
-                        //SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
-                        break;
+                    //case ApplicationManager.States.Comment:
+                    //SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
+                    //break;
                     default:
                         Console.SetCursorPosition(left, top);
                         break;
@@ -210,9 +213,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintAllTimes()
         {
-            MethodInfo method = typeof(Printer).GetMethod("PrintAllTimes", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintAllTimes", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -222,17 +226,19 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintCombineMark(int Index)
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintCombineMark", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintCombineMark", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
         public static PrintTask QueuePrintInstructions()
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintInstructions", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintInstructions", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -242,9 +248,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintMark(int Index)
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintMark", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintMark", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -254,9 +261,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintScreen()
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintScreen", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintScreen", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -266,9 +274,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintStatus()
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintStatus", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintStatus", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -278,9 +287,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintTimeEntry(int Index)
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintTime", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintTimeEntry", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -290,9 +300,10 @@ namespace TimeKeeper
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
         public static PrintTask QueuePrintTotalTime()
         {
-            MethodInfo method = typeof(Printer).GetType().GetMethod("PrintTotalTime", BindingFlags.NonPublic);
+            MethodInfo method = typeof(Printer).GetMethod("PrintTotalTime", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
             PrinterQueue.Enqueue(pTask);
+            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
         #endregion
@@ -303,7 +314,7 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintAllTimes(SessionManager SM)
         {
-            Console.SetCursorPosition(0, 7);
+            Console.SetCursorPosition(0, TEXT_COUNT - 1);
             Console.WriteLine("Time Spent\tComment");
 
             //Print all the times and their associated marker
@@ -387,18 +398,22 @@ namespace TimeKeeper
                     l2p2 = "Enter to confirm Combine range,";
                     l3p1 = "Escape to leave without combining";
                     break;
-                case ApplicationManager.States.Comment:
-                    l1p1 = "Enter to Confirm Changes";
-                    l2p1 = "";
-                    l3p1 = "";
-                    break;
                 case ApplicationManager.States.Edit:
-                    l1p1 = "C to enter Combine Mode (nope),";
-                    l1p2 = "Delete to delete an entry";
-                    l2p1 = "E to exit Edit Mode,";
-                    l2p2 = "Enter to Create/Edit Comment,";
-                    l3p1 = "M to enter Mark Mode,";
-                    l3p2 = "Up/Down Arrows to move, S to Save";
+                    if (ApplicationManager.IsCommenting)
+                    {
+                        l1p1 = "Enter to Confirm Changes";
+                        l2p1 = "";
+                        l3p1 = "";
+                    }
+                    else
+                    {
+                        l1p1 = "C to enter Combine Mode (nope),";
+                        l1p2 = "Delete to delete an entry";
+                        l2p1 = "E to exit Edit Mode,";
+                        l2p2 = "Enter to Create/Edit Comment,";
+                        l3p1 = "M to enter Mark Mode,";
+                        l3p2 = "Up/Down Arrows to move, S to Save";
+                    }
                     break;
                 case ApplicationManager.States.Mark:
                     l1p1 = "Up/Down Arrows to move,";
@@ -451,7 +466,8 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintMark(SessionManager SM, int Index)
         {
-            Console.CursorLeft = MARK_LEFT;
+            SetCursorToTimeEntry(Index);
+            Console.SetCursorPosition(MARK_LEFT, Console.CursorTop);
             Console.ForegroundColor = SM.CurrentSession.Times[Index].marked ? MarkOnColor : MarkOffColor;
             Console.Write(MarkChar);
             Console.ForegroundColor = ConsoleColor.White;
@@ -491,10 +507,14 @@ namespace TimeKeeper
                     Console.ForegroundColor = ConsoleColor.Green;
                     break;
                 case ApplicationManager.States.Edit:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    break;
-                case ApplicationManager.States.Comment:
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    if (ApplicationManager.IsCommenting)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                    }
                     break;
                 case ApplicationManager.States.Save:
                     Console.ForegroundColor = ConsoleColor.Magenta;
@@ -515,22 +535,25 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintTimeEntry(SessionManager SM, int Index)
         {
-            PrintMark(SM, Index);
-            Console.CursorLeft = TIME_LEFT;
-            string temp = "";
-            if (SM.CurrentSession.Times[Index].comment.Length != 0)
-                temp = SM.CurrentSession.Times[Index].comment.ToString().Remove(SM.CurrentSession.Times[Index].comment.Length - 1);
+            if (Index > -1)
+            {
+                PrintMark(SM, Index);
+                SetCursorToTimeEntry(Index);
+                string temp = "";
+                if (SM.CurrentSession.Times[Index].comment.Length != 0)
+                    temp = SM.CurrentSession.Times[Index].comment.ToString().Remove(SM.CurrentSession.Times[Index].comment.Length - 1);
 #if DEBUG
-            Console.WriteLine("{0}:{1}{2}",
-                SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadLeft(2, '0'),
-                SM.CurrentSession.Times[Index].timeSpent.Seconds.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_POINT.Pad));
+                Console.WriteLine("{0}:{1}{2}",
+                    SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadLeft(2, '0'),
+                    SM.CurrentSession.Times[Index].timeSpent.Seconds.ToString().PadRight(TAB_PAD),
+                    temp.PadRight(COMMENT_POINT.Pad));
 #else
             Console.WriteLine("{0}:{1}{2}",
                 SM.CurrentSession.Times[Index].timeSpent.Hours.ToString().PadLeft(2, '0'),
                 SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadRight(TAB_PAD),
                 temp.PadRight(COMMENT_POINT.Pad));
 #endif
+            }
         }
 
         /// <summary>

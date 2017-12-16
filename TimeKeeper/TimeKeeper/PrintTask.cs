@@ -11,12 +11,21 @@ namespace TimeKeeper
     {
         public delegate void PrintCompleteEventHandler();
         public MethodInfo PrintMethod;
+        public string MethodName
+        {
+            get
+            {
+                return PrintMethod.Name;
+            }
+            private set { }
+        }
         public object[] MethodParams;
         public event PrintCompleteEventHandler PrintCompleteEvent;
 
         public PrintTask(MethodInfo PrintMethod, object[] MethodParams)
         {
             this.PrintMethod = PrintMethod;
+            MethodName = PrintMethod.Name;
             this.MethodParams = MethodParams;
         }
 

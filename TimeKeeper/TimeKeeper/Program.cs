@@ -67,6 +67,7 @@ namespace TimeKeeper
         /// Represents the last-most possible index for current TimeEntry combining
         /// </summary>
         static int CombineIndexLast;
+
         #endregion
 
         static void Main(string[] args)
@@ -94,6 +95,8 @@ namespace TimeKeeper
 
             Printer.SetupPrinter(SM);
             Printer.QueuePrintScreen();
+
+
             ApplicationManager.ProgramState = ApplicationManager.States.Off;
             DayWatcher.Start();
             InputWatcher.Start();
@@ -278,31 +281,38 @@ namespace TimeKeeper
                 switch (ApplicationManager.ProgramState)
                 {
                     #region CKI Program States
+                    case ApplicationManager.States.Edit:
+                        while (ApplicationManager.IsCommenting)
+                        {
+                            CKI = Console.ReadKey();
+                            switch (CKI.Key)
+                            {
+                                case ConsoleKey.Backspace:
+                                    if (SM.CurrentSession.Times[ListIndex].comment.Length > 0)
+                                    {
+                                        Console.Write(" ");
+                                        Console.CursorLeft--;
+                                        SM.CurrentSession.Times[ListIndex].comment.Remove(SM.CurrentSession.Times[ListIndex].comment.Length - 1, 1);
+                                    }
+                                    break;
+                                case ConsoleKey.Enter:
+                                    ApplicationManager.IsCommenting = false;
+                                    break;
+                                default:
+                                    SM.CurrentSession.Times[ListIndex].comment.Append(CKI.KeyChar);
+                                    break;
+                            }
+                        }
+                        CKI = Console.ReadKey(true);
+                        break;
                     case ApplicationManager.States.Off:
                     case ApplicationManager.States.Watch:
-                    case ApplicationManager.States.Edit:
                     case ApplicationManager.States.Combine:
                     case ApplicationManager.States.View:
                     case ApplicationManager.States.Mark:
                         CKI = Console.ReadKey(true);
                         break;
-                    case ApplicationManager.States.Comment:
-                        CKI = Console.ReadKey();
-                        switch (CKI.Key)
-                        {
-                            case ConsoleKey.Backspace:
-                                if (SM.CurrentSession.Times[ListIndex].comment.Length > 0)
-                                {
-                                    Console.Write(" ");
-                                    Console.CursorLeft--;
-                                    SM.CurrentSession.Times[ListIndex].comment.Remove(SM.CurrentSession.Times[ListIndex].comment.Length - 1, 1);
-                                }
-                                break;
-                            default:
-                                SM.CurrentSession.Times[ListIndex].comment.Append(CKI.KeyChar);
-                                break;
-                        }
-                        break;
+
                         #endregion
                 }
 
@@ -332,24 +342,21 @@ namespace TimeKeeper
                                 Printer.QueuePrintScreen();
                                 ApplicationManager.ProgramState = ApplicationManager.PrevState;
                                 break;
-                            case ApplicationManager.States.Comment:
-                                //finished writing/editing
-                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
-                                break;
                             case ApplicationManager.States.Edit:
                                 if (ListIndex < SM.CurrentSession.Times.Count && SM.CurrentSession.Times.Count != 0)
                                 {
                                     Console.CursorLeft = Printer.COMMENT_POINT.Left;
+
                                     //Remove the comment from the screen buffer
-                                    string temp = string.Empty;
                                     if (SM.CurrentSession.Times[ListIndex].comment.Length != 0)
-                                        temp = SM.CurrentSession.Times[ListIndex].comment.ToString().Remove(SM.CurrentSession.Times[ListIndex].comment.Length - 1);
-                                    Console.Write(" ".PadRight(temp.Length));
-                                    Console.CursorLeft = Printer.COMMENT_POINT.Left;
-                                    SM.CurrentSession.Times[ListIndex].comment.Clear();
+                                    {
+                                        Console.Write(" ".PadRight(SM.CurrentSession.Times[ListIndex].comment.Length));
+                                        SM.CurrentSession.Times[ListIndex].comment.Clear();
+                                        Console.CursorLeft = Printer.COMMENT_POINT.Left;
+                                    }
 
                                     //begin editing
-                                    ApplicationManager.ProgramState = ApplicationManager.States.Comment;
+                                    ApplicationManager.IsCommenting = true;
                                 }
                                 break;
                             case ApplicationManager.States.Mark:
@@ -682,7 +689,7 @@ namespace TimeKeeper
                             break;
                     }
 
-                    if (ApplicationManager.PrevState == ApplicationManager.States.SaveAndExit)
+                    if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
                         ApplicationManager.ProgramState = ApplicationManager.States.Exit;
                 }));
             });
@@ -691,7 +698,7 @@ namespace TimeKeeper
         public static bool CheckForValidSaveInput(ConsoleKey CK)
         {
             bool ValidInput = true;
-            switch (CKI.Key)
+            switch (CK)
             {
                 case ConsoleKey.Y:
                 case ConsoleKey.N:

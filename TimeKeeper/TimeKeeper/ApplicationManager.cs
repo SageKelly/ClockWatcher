@@ -15,7 +15,6 @@ namespace TimeKeeper
             Edit,
             Combine,
             Mark,
-            Comment,
             Save,
             View,
             SaveAndExit,
@@ -45,6 +44,9 @@ namespace TimeKeeper
                 return prevState;
             }
         }
-        
+
+        public static bool IsCommenting;
+
+
     }
 }
