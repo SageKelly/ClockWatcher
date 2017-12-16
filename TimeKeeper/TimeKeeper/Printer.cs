@@ -58,7 +58,7 @@ namespace TimeKeeper
             }
         }
 
-        private static Widget instructionsPoint = new Widget(0,1,39);
+        private static Widget instructionsPoint = new Widget(0, 1, 39);
 
         /// <summary>
         /// Represents the locations of the Instructions section of the screen
@@ -118,6 +118,11 @@ namespace TimeKeeper
             ///Set speical marking characters
             MarkChar = "*";
             CombineChar = "+";
+        }
+
+        public static void SetCursorToTimeEntry(int Index)
+        {
+            Console.SetCursorPosition(TIME_LEFT, Index + TEXT_COUNT);
         }
 
         /// <summary>
@@ -182,26 +187,21 @@ namespace TimeKeeper
         {
             if (PrinterQueue.Count != 0)
             {
+                int left = Console.CursorLeft;
+                int top = Console.CursorTop;
                 PrintTask task = PrinterQueue.Dequeue();
                 task.Invoke();
 
                 switch (ApplicationManager.ProgramState)
                 {
                     case ApplicationManager.States.Comment:
+                        //SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
                         break;
                     default:
-                        SetToBottom();
+                        Console.SetCursorPosition(left, top);
                         break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Sets the Cursor's Top location to the last line in the console.
-        /// </summary>
-        public static void SetToBottom()
-        {
-            ListIndex = SeshMan.currentSession.Times.Count - 1;
         }
 
         /// <summary>
@@ -220,10 +220,10 @@ namespace TimeKeeper
         /// Queues the combine screen to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintCombineMark()
+        public static PrintTask QueuePrintCombineMark(int Index)
         {
             MethodInfo method = typeof(Printer).GetType().GetMethod("PrintCombineMark", BindingFlags.NonPublic);
-            PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
+            PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
             return pTask;
         }
@@ -240,10 +240,10 @@ namespace TimeKeeper
         /// Queues the Print Mark to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintMark()
+        public static PrintTask QueuePrintMark(int Index)
         {
             MethodInfo method = typeof(Printer).GetType().GetMethod("PrintMark", BindingFlags.NonPublic);
-            PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
+            PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
             return pTask;
         }
@@ -276,10 +276,10 @@ namespace TimeKeeper
         /// Queues the current time to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintTime()
+        public static PrintTask QueuePrintTimeEntry(int Index)
         {
             MethodInfo method = typeof(Printer).GetType().GetMethod("PrintTime", BindingFlags.NonPublic);
-            PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
+            PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
             PrinterQueue.Enqueue(pTask);
             return pTask;
         }
@@ -295,7 +295,6 @@ namespace TimeKeeper
             PrinterQueue.Enqueue(pTask);
             return pTask;
         }
-
         #endregion
 
         #region Private
@@ -304,13 +303,11 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintAllTimes(SessionManager SM)
         {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
             Console.SetCursorPosition(0, 7);
             Console.WriteLine("Time Spent\tComment");
 
             //Print all the times and their associated marker
-            foreach (TimeEntry TI in SM.currentSession.Times)
+            foreach (TimeEntry TI in SM.CurrentSession.Times)
             {
                 if (ApplicationManager.ProgramState == ApplicationManager.States.Combine)
                 {
@@ -335,21 +332,17 @@ namespace TimeKeeper
                 temp.PadRight(COMMENT_PAD));
 #endif
             }
-            Console.SetCursorPosition(left, top);
         }
 
         /// <summary>
         /// Uses ListIndex to print the Combine mark for the TimeEntry
         /// </summary>
-        private static void PrintCombineMark(SessionManager SM)
+        private static void PrintCombineMark(SessionManager SM, int Index)
         {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
             Console.CursorLeft = MARK_LEFT;
-            Console.ForegroundColor = SM.currentSession.Times[ListIndex].combine ? CombineOnColor : CombineOffColor;
+            Console.ForegroundColor = SM.CurrentSession.Times[Index].combine ? CombineOnColor : CombineOffColor;
             Console.Write(CombineChar);
             Console.ForegroundColor = ConsoleColor.White;
-            Console.SetCursorPosition(left, top);
         }
 
         /// <summary>
@@ -357,8 +350,6 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintInstructions(SessionManager SM)
         {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
             string l1p1 = "", l1p2 = "", l2p1 = "", l2p2 = "", l3p1 = "", l3p2 = "";
             Console.SetCursorPosition(INSTRUCTIONS_POINT.Left, INSTRUCTIONS_POINT.Top);
             Console.WriteLine("INSTRUCTIONS:");
@@ -452,22 +443,18 @@ namespace TimeKeeper
                 l1p1.PadRight(INSTRUCTIONS_POINT.Pad) + l1p2.PadRight(INSTRUCTIONS_POINT.Pad) + "\n" +
                 l2p1.PadRight(INSTRUCTIONS_POINT.Pad) + l2p2.PadRight(INSTRUCTIONS_POINT.Pad) + "\n" +
                 l3p1.PadRight(INSTRUCTIONS_POINT.Pad) + l3p2.PadRight(INSTRUCTIONS_POINT.Pad) + "\n" +
-                string.Empty.PadRight(36,'-').PadRight(Console.BufferWidth));
-            Console.SetCursorPosition(left, top);
+                string.Empty.PadRight(36, '-').PadRight(Console.BufferWidth));
         }
 
         /// <summary>
         /// Uses ListIndex to print a TimeEntry's mark pip.
         /// </summary>
-        private static void PrintMark(SessionManager SM)
+        private static void PrintMark(SessionManager SM, int Index)
         {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
             Console.CursorLeft = MARK_LEFT;
-            Console.ForegroundColor = SM.currentSession.Times[ListIndex].marked ? MarkOnColor : MarkOffColor;
+            Console.ForegroundColor = SM.CurrentSession.Times[Index].marked ? MarkOnColor : MarkOffColor;
             Console.Write(MarkChar);
             Console.ForegroundColor = ConsoleColor.White;
-            Console.SetCursorPosition(left, top);
         }
 
         /// <summary>
@@ -484,7 +471,7 @@ namespace TimeKeeper
             QueuePrintStatus();
             QueuePrintTotalTime();
             QueuePrintAllTimes();
-            SetToBottom();
+            SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
         }
 
         /// <summary>
@@ -492,10 +479,7 @@ namespace TimeKeeper
         /// </summary>
         private static void PrintStatus(SessionManager SM)
         {
-            //Cursor: 2,8   
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            Console.SetCursorPosition(0, STATUS_POINT.Top);
+            Console.SetCursorPosition(STATUS_POINT.Left, STATUS_POINT.Top);
             Console.Write("Status: ");
             switch (ApplicationManager.ProgramState)
             {
@@ -524,34 +508,29 @@ namespace TimeKeeper
             //Just enough to clear the longest state name
             Console.Write(ApplicationManager.ProgramState.ToString().PadRight(7));
             Console.ForegroundColor = ConsoleColor.White;
-
-            Console.SetCursorPosition(left, top);
         }
 
         /// <summary>
         /// Uses ListIndex to print a TimeEntry to the screen
         /// </summary>
-        private static void PrintTime(SessionManager SM)
+        private static void PrintTimeEntry(SessionManager SM, int Index)
         {
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
-            PrintMark(SM);
+            PrintMark(SM, Index);
             Console.CursorLeft = TIME_LEFT;
             string temp = "";
-            if (SM.currentSession.Times[ListIndex].comment.Length != 0)
-                temp = SM.currentSession.Times[listIndex].comment.ToString().Remove(SM.currentSession.Times[ListIndex].comment.Length - 1);
+            if (SM.CurrentSession.Times[Index].comment.Length != 0)
+                temp = SM.CurrentSession.Times[Index].comment.ToString().Remove(SM.CurrentSession.Times[Index].comment.Length - 1);
 #if DEBUG
             Console.WriteLine("{0}:{1}{2}",
-                SM.currentSession.Times[ListIndex].timeSpent.Minutes.ToString().PadLeft(2, '0'),
-                SM.currentSession.Times[ListIndex].timeSpent.Seconds.ToString().PadRight(TAB_PAD),
+                SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadLeft(2, '0'),
+                SM.CurrentSession.Times[Index].timeSpent.Seconds.ToString().PadRight(TAB_PAD),
                 temp.PadRight(COMMENT_POINT.Pad));
 #else
             Console.WriteLine("{0}:{1}{2}",
-                SM.currentSession.Times[ListIndex].timeSpent.Hours.ToString().PadLeft(2, '0'),
-                SM.currentSession.Times[ListIndex].timeSpent.Minutes.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_PAD));
+                SM.CurrentSession.Times[Index].timeSpent.Hours.ToString().PadLeft(2, '0'),
+                SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadRight(TAB_PAD),
+                temp.PadRight(COMMENT_POINT.Pad));
 #endif
-            Console.SetCursorPosition(left, top);
         }
 
         /// <summary>
@@ -560,16 +539,11 @@ namespace TimeKeeper
         private static void PrintTotalTime(SessionManager SM)
         {
             TimeSpan total = SM.TallyTime();
-            //Cursor: 2,16
-            int left = Console.CursorLeft;
-            int top = Console.CursorTop;
             Console.CursorTop = TOTAL_POINT.Top;
             Console.CursorLeft = TOTAL_POINT.Left;
 
             //Console.Write("Total Time: {0}:{1} ", TotalTimeSpan.Hours, TotalTimeSpan.Minutes);
             Console.Write("Total Time: {0}".PadRight(INSTRUCTIONS_POINT.Pad), total.Duration());
-
-            Console.SetCursorPosition(left, top);
         }
         #endregion
 

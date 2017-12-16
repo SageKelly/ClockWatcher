@@ -18,7 +18,7 @@ namespace TimeKeeper
         /// <summary>
         /// represents the newest session
         /// </summary>
-        public Session currentSession;
+        public Session CurrentSession;
         /// <summary>
         /// represents the currently viewed session
         /// </summary>
@@ -125,9 +125,9 @@ namespace TimeKeeper
         public TimeSpan TallyTime()
         {
             TimeSpan TotalTimeSpan = TimeSpan.Zero;
-            if (currentSession.Times.Count != 0)
+            if (CurrentSession.Times.Count != 0)
             {
-                foreach (TimeEntry TI in currentSession.Times)
+                foreach (TimeEntry TI in CurrentSession.Times)
                 {
                     if (TI.marked)
                         TotalTimeSpan += TI.timeSpent;
