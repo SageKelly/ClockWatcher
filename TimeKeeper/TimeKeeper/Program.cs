@@ -47,16 +47,15 @@ namespace TimeKeeper
         /// <summary>
         /// Represents the day this program was initialized
         /// </summary>
-        private static DateTime StartingDate;
 
         /// <summary>
         /// Represents the previous cycle's time
         /// </summary>
-        private static DateTime Previous = DateTime.Now;
+        private static DateTimeOffset Previous = DateTimeOffset.Now;
         /// <summary>
         /// Represents the current cycle's time
         /// </summary>
-        private static DateTime Now = DateTime.Now;
+        private static DateTimeOffset Now = DateTimeOffset.Now;
 
         /// <summary>
         /// Represents the first-most possible index for current TimeEntry combining
@@ -80,17 +79,15 @@ namespace TimeKeeper
             CKI = new ConsoleKeyInfo();
 
             SM = new SessionManager();
-            SM.LoadSessions(FILENAME);
+            //SM.LoadSessions(FILENAME);
 
-            SM.Add(new Session());
+            SM.CreateSession();
             SM.CurrentSession = SM.SelectedSession();
 
-            ListIndex = SM.CurrentSession.Times.Count - 1;
+            ListIndex = SM.CurrentSession.LastTimeIndex;
             ResetCombineIndices();
 
             ///Record the day this program started
-            SM.CurrentSession.BeginSession();
-
             Timer = new Stopwatch();
 
             Printer.SetupPrinter(SM);
@@ -108,7 +105,7 @@ namespace TimeKeeper
         /// </summary>
         public static void SetToLast()
         {
-            ListIndex = SM.CurrentSession.Times.Count - 1;
+            ListIndex = SM.CurrentSession.LastTimeIndex;
         }
 
         /// <summary>
@@ -119,14 +116,13 @@ namespace TimeKeeper
             if (SM.CurrentSession.Times.Count > 0)
             {
                 Timer.Stop();
-                SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].ended = DateTime.Now;
-                SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
-                SM.CurrentSession.Times.Add(new TimeEntry(DateTime.Now));
+                SM.CurrentSession.LastTimeEntry.Finalize(Timer.Elapsed);
+                SM.CurrentSession.CreateTimeEntry();
                 Timer.Restart();
             }
             else
             {
-                SM.CurrentSession.Times.Add(new TimeEntry(DateTime.Now));
+                SM.CurrentSession.CreateTimeEntry();
                 Timer.Start();
             }
             Printer.QueuePrintTotalTime();
@@ -148,7 +144,7 @@ namespace TimeKeeper
                 mainEntry = SM.CurrentSession.Times[CombineIndexFirst + 1];
             }
 
-            if (CombineIndexLast == SM.CurrentSession.Times.Count - 1 && SM.CurrentSession.Times[CombineIndexLast].combine)
+            if (CombineIndexLast == SM.CurrentSession.LastTimeIndex && SM.CurrentSession.Times[CombineIndexLast].combine)
             {
                 CombineIndex = CombineIndexLast;
             }
@@ -212,7 +208,7 @@ namespace TimeKeeper
                     CombineIndexFirst++;
                 }
             }
-            if (ListIndex < SM.CurrentSession.Times.Count - 1 && !SM.CurrentSession.Times[ListIndex + 1].combine)
+            if (ListIndex < SM.CurrentSession.LastTimeIndex && !SM.CurrentSession.Times[ListIndex + 1].combine)
             {
                 CombineIndexLast = ListIndex + 1;
             }
@@ -255,7 +251,7 @@ namespace TimeKeeper
                 if (ListIndex - 1 > -1 && !SM.CurrentSession.Times[ListIndex - 1].combine)
                 {
                     //If not at end and location below not combine
-                    if (ListIndex + 1 < SM.CurrentSession.Times.Count - 1 && !SM.CurrentSession.Times[ListIndex + 1].combine)
+                    if (ListIndex + 1 < SM.CurrentSession.LastTimeIndex && !SM.CurrentSession.Times[ListIndex + 1].combine)
                     {
                         return true;
                     }
@@ -288,18 +284,19 @@ namespace TimeKeeper
                             switch (CKI.Key)
                             {
                                 case ConsoleKey.Backspace:
-                                    if (SM.CurrentSession.Times[ListIndex].comment.Length > 0)
+                                    if (SM.CurrentSession.Times[ListIndex].Comment.Length > 0)
                                     {
                                         Console.Write(" ");
                                         Console.CursorLeft--;
-                                        SM.CurrentSession.Times[ListIndex].comment.Remove(SM.CurrentSession.Times[ListIndex].comment.Length - 1, 1);
+                                        SM.CurrentSession.Times[ListIndex].Comment.Remove(SM.CurrentSession.Times[ListIndex].Comment.Length - 1, 1);
                                     }
                                     break;
                                 case ConsoleKey.Enter:
+                                    TimeEntryMapper.UpdateTimeEntry(SM.CurrentSession.Times[ListIndex]);
                                     ApplicationManager.IsCommenting = false;
                                     break;
                                 default:
-                                    SM.CurrentSession.Times[ListIndex].comment.Append(CKI.KeyChar);
+                                    SM.CurrentSession.Times[ListIndex].Comment.Append(CKI.KeyChar);
                                     break;
                             }
                         }
@@ -348,10 +345,10 @@ namespace TimeKeeper
                                     Console.CursorLeft = Printer.COMMENT_POINT.Left;
 
                                     //Remove the comment from the screen buffer
-                                    if (SM.CurrentSession.Times[ListIndex].comment.Length != 0)
+                                    if (SM.CurrentSession.Times[ListIndex].Comment.Length != 0)
                                     {
-                                        Console.Write(" ".PadRight(SM.CurrentSession.Times[ListIndex].comment.Length));
-                                        SM.CurrentSession.Times[ListIndex].comment.Clear();
+                                        Console.Write(" ".PadRight(SM.CurrentSession.Times[ListIndex].Comment.Length));
+                                        SM.CurrentSession.Times[ListIndex].Comment.Clear();
                                         Console.CursorLeft = Printer.COMMENT_POINT.Left;
                                     }
 
@@ -374,7 +371,7 @@ namespace TimeKeeper
                         {
                             case ApplicationManager.States.Watch:
                                 AddNewTime();
-                                ListIndex++;
+                                SetToLast();
                                 Printer.QueuePrintTimeEntry(ListIndex);
                                 Printer.QueuePrintTotalTime();
                                 break;
@@ -428,7 +425,7 @@ namespace TimeKeeper
                                     if (SM.currentSession.Times[ListIndex].Combine ||
                                         (!SM.currentSession.Times[CombineIndexFirst].Combine || !SM.currentSession.Times[CombineIndexLast].Combine))
                                     {
-                                        int Last = SM.currentSession.Times.Count - 1;
+                                        int Last = SM.currentSession.LastTimeIndex;
                                         SM.currentSession.Times[ListIndex].Combine = !SM.currentSession.Times[ListIndex].Combine;
                                         if (SM.currentSession.Times[ListIndex].Combine)
                                         {
@@ -446,11 +443,11 @@ namespace TimeKeeper
                                         {
                                             if (!SM.currentSession.Times[CombineIndexFirst].Combine)
                                             {
-                                                CombineIndexFirst = SM.currentSession.Times.Count - 1;
+                                                CombineIndexFirst = SM.currentSession.LastTimeIndex;
                                             }
                                             else if (!SM.currentSession.Times[CombineIndexLast].Combine)
                                             {
-                                                CombineIndexLast = SM.currentSession.Times.Count - 1;
+                                                CombineIndexLast = SM.currentSession.LastTimeIndex;
                                             }
                                         }
 
@@ -469,8 +466,6 @@ namespace TimeKeeper
                         switch (ApplicationManager.ProgramState)
                         {
                             case ApplicationManager.States.Off:
-                                ApplicationManager.ProgramState = ApplicationManager.States.Edit;
-                                break;
                             case ApplicationManager.States.Watch:
                                 ApplicationManager.ProgramState = ApplicationManager.States.Edit;
                                 break;
@@ -596,7 +591,7 @@ namespace TimeKeeper
                             */
                             case ApplicationManager.States.Mark:
                             case ApplicationManager.States.Edit:
-                                if (ListIndex < SM.CurrentSession.Times.Count - 1)
+                                if (ListIndex < SM.CurrentSession.LastTimeIndex)
                                     IncListAndTop();
                                 break;
                             case ApplicationManager.States.View:
@@ -644,7 +639,7 @@ namespace TimeKeeper
         private static void ResetCombineIndices()
         {
             CombineIndexFirst = 0;
-            CombineIndexLast = SM.CurrentSession.Times.Count - 1;
+            CombineIndexLast = SM.CurrentSession.LastTimeIndex;
         }
 
         /// <summary>
@@ -661,12 +656,11 @@ namespace TimeKeeper
                 switch (CK)
                 {
                     case ConsoleKey.Y:
-                        SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].ended = DateTime.Now;
-                        SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
-                        ListIndex++;
+                        SM.CurrentSession.LastTimeEntry.Finalize(Timer.Elapsed);
+                        SetToLast();
                         break;
                     case ConsoleKey.N:
-                        SM.CurrentSession.Times.RemoveAt(SM.CurrentSession.Times.Count - 1);
+                        SM.CurrentSession.RemoveTimeEntry(SM.CurrentSession.LastTimeEntry);
                         break;
                     default:
                         break;
@@ -682,8 +676,7 @@ namespace TimeKeeper
                     switch (CK)
                     {
                         case ConsoleKey.Y:
-                            SM.Add(SM.CurrentSession);
-                            SM.SaveSessions(FILENAME);
+                            SM.CurrentSession.Finalize();
                             break;
                         default:
                             break;
@@ -731,9 +724,9 @@ namespace TimeKeeper
         public static void WatchForNewDay()
         {
             string newDay = "New Day!";
-            Now = DateTime.Now;
+            Now = DateTimeOffset.Now;
 #if DEBUG
-            if (Now.Minute != Previous.Minute)
+            if (Now.Hour != Previous.Hour)
 #else
             if (Now.Day != Previous.Day)
 #endif
@@ -741,20 +734,21 @@ namespace TimeKeeper
                 newDayOccurred = true;
                 AddNewTime();
                 Printer.QueuePrintTotalTime();
-                int length = SM.CurrentSession.Times.Count - 1;//Last TimeEntry
+                int length = SM.CurrentSession.LastTimeIndex;//Last TimeEntry
                 if (length > 0)
                 {
                     //Set a char array equal to the length of the second-to-last time entry's comment +
                     //the length of "new Day!" + 1 for a space
-                    char[] temp = new char[SM.CurrentSession.Times[length - 1].comment.Length + newDay.Length + 1];
+                    char[] temp = new char[SM.CurrentSession.Times[length - 1].Comment.Length + newDay.Length + 1];
                     //Copy New Day! to the beginning registers of temp
                     newDay.CopyTo(0, temp, 0, newDay.Length);
                     //The register after "New Day!" should be a space: ' '
                     temp[newDay.Length] = ' ';
                     //Then, copy the full length of the second-to-last index
-                    SM.CurrentSession.Times[length - 1].comment.CopyTo(0, temp, newDay.Length + 1, SM.CurrentSession.Times[length - 1].comment.Length);
+                    SM.CurrentSession.Times[length - 1].Comment.CopyTo(0, temp, newDay.Length + 1, SM.CurrentSession.Times[length - 1].Comment.Length);
                     //Finally, add the entire comment to the newest time entry
-                    SM.CurrentSession.Times[length].comment.Append(temp);
+                    SM.CurrentSession.LastTimeEntry.Comment.Append(temp);
+                    TimeEntryMapper.UpdateTimeEntry(SM.CurrentSession.LastTimeEntry);
                 }
             }
             if (newDayOccurred && ApplicationManager.ProgramState == ApplicationManager.States.Watch)
@@ -786,11 +780,11 @@ namespace TimeKeeper
                 case ApplicationManager.States.Watch:
                     if (TimerChanged)
                     {
-                        listIndex = SM.CurrentSession.Times.Count - 1;
-                        SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].timeSpent = Timer.Elapsed;
+                        listIndex = SM.CurrentSession.LastTimeIndex;
+                        SM.CurrentSession.LastTimeEntry.timeSpent = Timer.Elapsed;
                         SetToLast();
                         Printer.QueuePrintTimeEntry(listIndex);
-                        if (SM.CurrentSession.Times[SM.CurrentSession.Times.Count - 1].marked)
+                        if (SM.CurrentSession.LastTimeEntry.marked)
                             Printer.QueuePrintTotalTime();
                         TimerChanged = false;
                     }

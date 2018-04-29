@@ -37,9 +37,9 @@ namespace TimeKeeper
         /// Adds a session to the session Manager.
         /// </summary>
         /// <param name="s">The Session to be added</param>
-        public void Add(Session s)
+        public void CreateSession()
         {
-            sessions.Add(s);
+            sessions.Add(SessionMapper.CreateSession());
             internal_index = sessions.Count - 1;
         }
 

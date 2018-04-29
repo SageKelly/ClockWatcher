@@ -332,8 +332,8 @@ namespace TimeKeeper
                 }
                 Console.ForegroundColor = ConsoleColor.White;
                 string temp = string.Empty;
-                if (TI.comment.Length != 0)
-                    temp = TI.comment.ToString().Remove(TI.comment.Length - 1);
+                if (TI.Comment.Length != 0)
+                    temp = TI.Comment.ToString().Remove(TI.Comment.Length - 1);
 #if DEBUG
                 Console.WriteLine("{0}:{1}{2}",
                     TI.timeSpent.Minutes.ToString().PadLeft(2, '0'), TI.timeSpent.Seconds.ToString().PadRight(TAB_PAD), temp.PadRight(COMMENT_POINT.Pad));
@@ -540,8 +540,8 @@ namespace TimeKeeper
                 PrintMark(SM, Index);
                 SetCursorToTimeEntry(Index);
                 string temp = "";
-                if (SM.CurrentSession.Times[Index].comment.Length != 0)
-                    temp = SM.CurrentSession.Times[Index].comment.ToString().Remove(SM.CurrentSession.Times[Index].comment.Length - 1);
+                if (SM.CurrentSession.Times[Index].Comment.Length != 0)
+                    temp = SM.CurrentSession.Times[Index].Comment.ToString().Remove(SM.CurrentSession.Times[Index].Comment.Length - 1);
 #if DEBUG
                 Console.WriteLine("{0}:{1}{2}",
                     SM.CurrentSession.Times[Index].timeSpent.Minutes.ToString().PadLeft(2, '0'),
