@@ -661,6 +661,7 @@ namespace TimeKeeper
                         break;
                     case ConsoleKey.N:
                         SM.CurrentSession.RemoveTimeEntry(SM.CurrentSession.LastTimeEntry);
+                        SetToLast();
                         break;
                     default:
                         break;

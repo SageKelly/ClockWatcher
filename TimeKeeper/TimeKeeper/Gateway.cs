@@ -10,7 +10,7 @@ namespace TimeKeeper
 {
     public static class Gateway
     {
-#if DEBUG
+#if DEBUG || RELEASE_TEST
         private const string CONNECTION_STRING = "Data Source = VELVEETA\\DEVELOPMENT; Initial Catalog = TimeWatcherDebug; Integrated Security = true";
 #else
         private const string CONNECTION_STRING = "Data Source = VELVEETA\\DEVELOPMENT; Initial Catalog = TimeWatcher; Integrated Security = true";
@@ -236,6 +236,9 @@ namespace TimeKeeper
 
         private static List<object[]> MakeRequest(string SQLString, Dictionary<string, object> Parameters)
         {
+#if DEBUG
+            return new List<object[]>() { new object[] { Guid.Empty, null, null, null, null, null } };
+#else
             List<object[]> result = null;
             using (SqlConnection conn = new SqlConnection(CONNECTION_STRING))
             {
@@ -275,6 +278,7 @@ namespace TimeKeeper
                 }
             }
             return result;
+#endif
         }
 
     }

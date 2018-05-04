@@ -340,7 +340,7 @@ namespace TimeKeeper
 #else
                 Console.WriteLine("{0}:{1}{2}",
                     TI.timeSpent.Hours.ToString().PadLeft(2, '0'), TI.timeSpent.Minutes.ToString().PadRight(TAB_PAD),
-                temp.PadRight(COMMENT_PAD));
+                temp.PadRight(COMMENT_POINT.Pad));
 #endif
             }
         }
