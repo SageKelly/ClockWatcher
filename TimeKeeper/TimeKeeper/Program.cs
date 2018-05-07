@@ -79,7 +79,9 @@ namespace TimeKeeper
             Console.Title = "Time Keeper";
             ///Start the threads
             InputWatcher = new Thread(ReadKeys);
+            InputWatcher.Name = "Input Watcher";
             DayWatcher = new Thread(ClockAndPrintWatcher);
+            DayWatcher.Name = "Day Watcher";
 
             //DayWatcher.IsBackground = true;
 
@@ -397,7 +399,7 @@ namespace TimeKeeper
                                 {
                                     ApplicationManager.ProgramState = ApplicationManager.States.SaveAndExit;
                                     SetToLast();
-                                    SaveTimes();
+                                    SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueueSaveTimesPrintTask(Timer) });
                                 }
                                 else
                                 {
@@ -545,7 +547,7 @@ namespace TimeKeeper
                                 if (SM.CurrentSession.Times.Count > 0)
                                 {
                                     ApplicationManager.ProgramState = ApplicationManager.States.Save;
-                                    SaveTimes();
+                                    SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueueSaveTimesPrintTask(Timer) });
                                     ApplicationManager.ProgramState = ApplicationManager.PrevState;
                                 }
                                 break;
@@ -653,74 +655,7 @@ namespace TimeKeeper
         /// <summary>
         /// Stops the Timer and adds new TimeEntry
         /// </summary>
-        private static void SaveTimes()
-        {
-            //Stop the timer
-            Timer.Stop();
 
-            //Do you want to save your latest time?
-
-            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask),
-                new object[]{
-                    Printer.QueuePromptUserPrintTask("Do you want to save your latest time? (y/n)", CheckForValidSaveInput,
-                    new Action<ConsoleKey>(delegate (ConsoleKey CK)
-            {
-                switch (CK)
-                {
-                    case ConsoleKey.Y:
-                        SM.CurrentSession.LastTimeEntry.Finalize(Timer.Elapsed);
-                        SetToLast();
-                        break;
-                    case ConsoleKey.N:
-                        SM.CurrentSession.RemoveTimeEntry(SM.CurrentSession.LastTimeEntry);
-                        SetToLast();
-                        break;
-                    default:
-                        break;
-                }
-            }) ) });
-
-            PrintTask pt = Printer.QueuePrintScreenPrintTask();
-
-            //Do you want save the time sheet?
-            pt.Subtasks.Add(Printer.QueuePromptUserPrintTask("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
-            {
-                switch (CK)
-                {
-                    case ConsoleKey.Y:
-                        SM.CurrentSession.Finalize();
-                        break;
-                    default:
-                        break;
-                }
-
-                if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
-                    ApplicationManager.ProgramState = ApplicationManager.States.Exit;
-            })
-            ));
-
-            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { pt });
-
-            PrintTask pt2 = Printer.QueuePrintScreenPrintTask();
-            //Do you want save the time sheet?
-            pt.Subtasks.Add(
-                Printer.QueuePromptUserPrintTask("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
-                {
-                    switch (CK)
-                    {
-                        case ConsoleKey.Y:
-                            SM.CurrentSession.Finalize();
-                            break;
-                        default:
-                            break;
-                    }
-
-                    if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
-                        ApplicationManager.ProgramState = ApplicationManager.States.Exit;
-                })));
-            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { pt2 });
-
-        }
         public static bool CheckForValidSaveInput(ConsoleKey CK)
         {
             bool ValidInput = true;

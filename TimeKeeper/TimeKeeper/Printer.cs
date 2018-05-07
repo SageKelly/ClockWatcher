@@ -164,16 +164,20 @@ namespace TimeKeeper
             {
                 Console.CursorTop = LastLine + 1;
                 Console.WriteLine(Message.PadRight(Console.BufferWidth - 1));
+                Console.Write("".PadRight(Console.BufferWidth));
+                Console.CursorLeft = 0;
+
                 if (!ValidInput)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine("\nInvalid Input: try again.".PadRight(Console.BufferWidth - 1));
                     Console.ForegroundColor = ConsoleColor.White;
-
                     Console.CursorTop = LastLine + 2;
                 }
 
                 CKI = Console.ReadKey(true);
+
+                ValidInput = InputChecker(CKI.Key);
                 //to clean the screen
                 Console.CursorTop = LastLine + 1;
                 if (ValidInput)
@@ -185,8 +189,6 @@ namespace TimeKeeper
                     Console.WriteLine("".PadRight(Console.BufferWidth));
                     Console.WriteLine("".PadRight(Console.BufferWidth));
                 }
-
-                ValidInput = InputChecker(CKI.Key);
 
             } while (!ValidInput);
             FinalMethod(CKI.Key);
@@ -218,9 +220,10 @@ namespace TimeKeeper
                     int left = Console.CursorLeft;
                     int top = Console.CursorTop;
                     PrintTask task = PrinterQueue.Dequeue();
+                    PrinterHistory.Enqueue(task.MethodName);
                     task.Invoke();
 #if DEBUG
-                    Debug.WriteLine("Print Task " + task.MethodName + ": " + DateTime.Now.TimeOfDay);
+                    //Debug.WriteLine("Print Task " + task.MethodName + ": " + DateTime.Now.TimeOfDay);
 #endif
                     switch (ApplicationManager.ProgramState)
                     {
@@ -316,6 +319,13 @@ namespace TimeKeeper
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintTotalTime", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
+            return pTask;
+        }
+
+        public static PrintTask QueueSaveTimesPrintTask(Stopwatch Timer)
+        {
+            MethodInfo method = typeof(Printer).GetMethod("SaveTimes", BindingFlags.NonPublic | BindingFlags.Static);
+            PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Timer });
             return pTask;
         }
 
@@ -577,7 +587,14 @@ namespace TimeKeeper
         {
             if (Index > -1)
             {
-                PrintMark(SM, Index);
+                try
+                {
+                    QueuePrintTask(QueuePrintMarkPrintTask(Index));
+                }
+                catch (IndexOutOfRangeException ie) {
+                    Debug.WriteLine("<__< Print Mark Messed up again... " + Thread.CurrentThread.Name);
+                }
+
                 SetCursorToTimeEntry(Index);
                 string temp = "";
                 if (SM.CurrentSession.Times[Index].Comment.Length != 0)
@@ -609,7 +626,50 @@ namespace TimeKeeper
             Console.Write("Total Time: {0}".PadRight(INSTRUCTIONS_POINT.Pad), total.Duration());
         }
 
+        private static void SaveTimes(SessionManager SeshMan, Stopwatch Timer)
+        {
+            
+            //Stop the timer
+            Timer.Stop();
 
+            //Do you want to save your latest time?
+
+            PromptUser("Do you want to save your latest time? (y/n)", Program.CheckForValidSaveInput,
+                new Action<ConsoleKey>(delegate (ConsoleKey CK)
+                {
+                    switch (CK)
+                    {
+                        case ConsoleKey.Y:
+                            SeshMan.CurrentSession.LastTimeEntry.Finalize(Timer.Elapsed);
+                            Program.SetToLast();
+                            break;
+                        case ConsoleKey.N:
+                            SeshMan.CurrentSession.RemoveTimeEntry(SeshMan.CurrentSession.LastTimeEntry);
+                            Program.SetToLast();
+                            break;
+                        default:
+                            break;
+                    }
+                }));
+            PrintScreen(SeshMan);
+
+            //Do you want save the time sheet?
+            PromptUser("Do you want to save? (y/n)", Program.CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
+            {
+                switch (CK)
+                {
+                    case ConsoleKey.Y:
+                        SeshMan.CurrentSession.Finalize();
+                        break;
+                    default:
+                        break;
+                }
+
+                if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
+                    ApplicationManager.ProgramState = ApplicationManager.States.Exit;
+            }));
+            //InputWatcher.Interrupt();
+        }
 
 
         #endregion
