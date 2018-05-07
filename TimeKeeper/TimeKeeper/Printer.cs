@@ -1,17 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TimeKeeper
 {
-    public static class Printer
+    public class Printer : ISynchronizeInvoke
     {
         private static Queue<PrintTask> PrinterQueue;
         private static Queue<string> PrinterHistory;
         private static SessionManager SeshMan;
+
+
+        #region Delegates
+        public delegate void PrintTaskHandler(PrintTask pt);
+        #endregion
+
+        private bool _isRunning;
+        public Thread PrinterThread;
+
 
         #region CONSTANTS
         /// <summary>
@@ -72,6 +84,8 @@ namespace TimeKeeper
             }
         }
 
+        public bool InvokeRequired => throw new NotImplementedException();
+
         /// <summary>
         /// How many lines before TimeEntries are written (8).
         /// </summary>
@@ -101,9 +115,7 @@ namespace TimeKeeper
         private static string MarkChar, CombineChar;
 
 
-
-        #region Public Methods
-        public static void SetupPrinter(SessionManager SM)
+        public Printer(SessionManager SM)
         {
             SeshMan = SM;
 
@@ -120,7 +132,18 @@ namespace TimeKeeper
             ///Set speical marking characters
             MarkChar = "*";
             CombineChar = "+";
+
+
+            PrinterThread = new Thread(WatchForPrintTasks);
+            PrinterThread.IsBackground = true;
+            PrinterThread.Name = "Printer Thread";
+            PrinterThread.Start();
+
+            _isRunning = true;
         }
+
+
+        #region Public Methods
 
         public static void SetCursorToTimeEntry(int Index)
         {
@@ -174,35 +197,40 @@ namespace TimeKeeper
         /// </summary>
         /// <param name="Message">The message to relay to the user</param>
         /// <param name="InputChecker">The method to check the user's response</param>
-        public static void QueuePromptUser(string Message, Func<ConsoleKey, bool> InputChecker, Action<ConsoleKey> FinalMethod)
+        public static PrintTask QueuePromptUserPrintTask(string Message, Func<ConsoleKey, bool> InputChecker, Action<ConsoleKey> FinalMethod)
         {
             MethodInfo method = typeof(Printer).GetMethod("PromptUser", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { Message, InputChecker, FinalMethod });
-            PrinterHistory.Enqueue(pTask.MethodName);
-            PrinterQueue.Enqueue(pTask);
+            return pTask;
         }
 
         /// <summary>
         /// Checks printing booleans set to true and does
         /// those tasks
         /// </summary>
-        public static void WatchForPrintTasks()
+        public void WatchForPrintTasks()
         {
-            while (PrinterQueue.Count != 0)
+            while (_isRunning)
             {
-                int left = Console.CursorLeft;
-                int top = Console.CursorTop;
-                PrintTask task = PrinterQueue.Dequeue();
-                task.Invoke();
-
-                switch (ApplicationManager.ProgramState)
+                if (PrinterQueue.Count > 0)
                 {
-                    //case ApplicationManager.States.Comment:
-                    //SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
-                    //break;
-                    default:
-                        Console.SetCursorPosition(left, top);
-                        break;
+
+                    int left = Console.CursorLeft;
+                    int top = Console.CursorTop;
+                    PrintTask task = PrinterQueue.Dequeue();
+                    task.Invoke();
+#if DEBUG
+                    Debug.WriteLine("Print Task " + task.MethodName + ": " + DateTime.Now.TimeOfDay);
+#endif
+                    switch (ApplicationManager.ProgramState)
+                    {
+                        //case ApplicationManager.States.Comment:
+                        //SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
+                        //break;
+                        default:
+                            Console.SetCursorPosition(left, top);
+                            break;
+                    }
                 }
             }
         }
@@ -211,12 +239,10 @@ namespace TimeKeeper
         /// Queues the full set of times to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintAllTimes()
+        public static PrintTask QueuePrintAllTimesPrintTask()
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintAllTimes", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -224,21 +250,17 @@ namespace TimeKeeper
         /// Queues the combine screen to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintCombineMark(int Index)
+        public static PrintTask QueuePrintCombineMarkPrintTask(int Index)
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintCombineMark", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
-        public static PrintTask QueuePrintInstructions()
+        public static PrintTask QueuePrintInstructionsPrintTask()
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintInstructions", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -246,12 +268,10 @@ namespace TimeKeeper
         /// Queues the Print Mark to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintMark(int Index)
+        public static PrintTask QueuePrintMarkPrintTask(int Index)
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintMark", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -259,12 +279,10 @@ namespace TimeKeeper
         /// Queues the main screen to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintScreen()
+        public static PrintTask QueuePrintScreenPrintTask()
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintScreen", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -272,12 +290,10 @@ namespace TimeKeeper
         /// Queues the status to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintStatus()
+        public static PrintTask QueuePrintStatusPrintTask()
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintStatus", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -285,12 +301,10 @@ namespace TimeKeeper
         /// Queues the current time to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintTimeEntry(int Index)
+        public static PrintTask QueuePrintTimeEntryPrintTask(int Index)
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintTimeEntry", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan, Index });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
 
@@ -298,14 +312,39 @@ namespace TimeKeeper
         /// Queues the sum of the times to be printed.
         /// </summary>
         /// <returns>The PrintTask object used for registering to the task's completion</returns>
-        public static PrintTask QueuePrintTotalTime()
+        public static PrintTask QueuePrintTotalTimePrintTask()
         {
             MethodInfo method = typeof(Printer).GetMethod("PrintTotalTime", BindingFlags.NonPublic | BindingFlags.Static);
             PrintTask pTask = new PrintTask(method, new object[] { SeshMan });
-            PrinterQueue.Enqueue(pTask);
-            PrinterHistory.Enqueue(pTask.MethodName);
             return pTask;
         }
+
+        public static void QueuePrintTask(PrintTask Task)
+        {
+            PrinterQueue.Enqueue(Task);
+            PrinterHistory.Enqueue(Task.MethodName);
+        }
+
+        public IAsyncResult BeginInvoke(Delegate method, object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object EndInvoke(IAsyncResult result)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object Invoke(Delegate method, object[] args)
+        {
+            return method.DynamicInvoke(args);
+        }
+
+        public void Stop()
+        {
+            _isRunning = false;
+        }
+
         #endregion
 
         #region Private
@@ -483,10 +522,11 @@ namespace TimeKeeper
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("TIME KEEPER");
             Console.ForegroundColor = ConsoleColor.White;
-            QueuePrintInstructions();
-            QueuePrintStatus();
-            QueuePrintTotalTime();
-            QueuePrintAllTimes();
+
+            QueuePrintTask(QueuePrintInstructionsPrintTask());
+            QueuePrintTask(QueuePrintStatusPrintTask());
+            QueuePrintTask(QueuePrintTotalTimePrintTask());
+            QueuePrintTask(QueuePrintAllTimesPrintTask());
             SetCursorToTimeEntry(SeshMan.CurrentSession.Times.Count - 1);
         }
 
@@ -568,6 +608,10 @@ namespace TimeKeeper
             //Console.Write("Total Time: {0}:{1} ", TotalTimeSpan.Hours, TotalTimeSpan.Minutes);
             Console.Write("Total Time: {0}".PadRight(INSTRUCTIONS_POINT.Pad), total.Duration());
         }
+
+
+
+
         #endregion
 
 

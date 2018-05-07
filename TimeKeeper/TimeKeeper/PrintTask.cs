@@ -9,7 +9,6 @@ namespace TimeKeeper
 {
     public class PrintTask
     {
-        public delegate void PrintCompleteEventHandler();
         public MethodInfo PrintMethod;
         public string MethodName
         {
@@ -20,25 +19,24 @@ namespace TimeKeeper
             private set { }
         }
         public object[] MethodParams;
-        public event PrintCompleteEventHandler PrintCompleteEvent;
+
+        public List<PrintTask> Subtasks;
 
         public PrintTask(MethodInfo PrintMethod, object[] MethodParams)
         {
             this.PrintMethod = PrintMethod;
             MethodName = PrintMethod.Name;
             this.MethodParams = MethodParams;
-        }
-
-
-        public PrintTask(MethodInfo PrintMethod, object[] MethodParams, PrintCompleteEventHandler EventHandlerMethod) : this(PrintMethod, MethodParams)
-        {
-            PrintCompleteEvent += EventHandlerMethod;
+            Subtasks = new List<PrintTask>();
         }
 
         public void Invoke()
         {
             PrintMethod.Invoke(null, MethodParams);
-            PrintCompleteEvent?.Invoke();
+            foreach (PrintTask pt in Subtasks)
+            {
+                pt.Invoke();
+            }
         }
 
     }

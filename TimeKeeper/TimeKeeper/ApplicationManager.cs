@@ -32,8 +32,8 @@ namespace TimeKeeper
             {
                 prevState = ProgramState;
                 programState = value;
-                Printer.QueuePrintStatus();
-                Printer.QueuePrintInstructions();
+                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintStatusPrintTask() });
+                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintInstructionsPrintTask() });
             }
         }
         private static States prevState;
@@ -47,6 +47,6 @@ namespace TimeKeeper
 
         public static bool IsCommenting;
 
-
+        public static Printer SessionPrinter;
     }
 }

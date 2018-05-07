@@ -67,6 +67,11 @@ namespace TimeKeeper
         /// </summary>
         static int CombineIndexLast;
 
+        static Printer SessionPrinter;
+
+        #region Delegates
+        #endregion
+
         #endregion
 
         static void Main(string[] args)
@@ -75,6 +80,8 @@ namespace TimeKeeper
             ///Start the threads
             InputWatcher = new Thread(ReadKeys);
             DayWatcher = new Thread(ClockAndPrintWatcher);
+
+            //DayWatcher.IsBackground = true;
 
             CKI = new ConsoleKeyInfo();
 
@@ -90,10 +97,11 @@ namespace TimeKeeper
             ///Record the day this program started
             Timer = new Stopwatch();
 
-            Printer.SetupPrinter(SM);
-            Printer.QueuePrintScreen();
+            SessionPrinter = new Printer(SM);
+            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintScreenPrintTask() });
 
 
+            ApplicationManager.SessionPrinter = SessionPrinter;
             ApplicationManager.ProgramState = ApplicationManager.States.Off;
             DayWatcher.Start();
             InputWatcher.Start();
@@ -125,7 +133,7 @@ namespace TimeKeeper
                 SM.CurrentSession.CreateTimeEntry();
                 Timer.Start();
             }
-            Printer.QueuePrintTotalTime();
+            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTotalTimePrintTask() });
         }
 
         /// <summary>
@@ -336,7 +344,7 @@ namespace TimeKeeper
                                 //TODO: Get combine marking working
                                 CombineMarked();
                                 ResetCombineIndices();
-                                Printer.QueuePrintScreen();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintScreenPrintTask() });
                                 ApplicationManager.ProgramState = ApplicationManager.PrevState;
                                 break;
                             case ApplicationManager.States.Edit:
@@ -372,8 +380,8 @@ namespace TimeKeeper
                             case ApplicationManager.States.Watch:
                                 AddNewTime();
                                 SetToLast();
-                                Printer.QueuePrintTimeEntry(ListIndex);
-                                Printer.QueuePrintTotalTime();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTimeEntryPrintTask(ListIndex) });
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTotalTimePrintTask() });
                                 break;
                         }
                         break;
@@ -487,9 +495,9 @@ namespace TimeKeeper
                                 if (ListIndex < SM.CurrentSession.Times.Count && SM.CurrentSession.Times.Count != 0)
                                 {
                                     SM.CurrentSession.Times[ListIndex].marked = !SM.CurrentSession.Times[ListIndex].marked;
-                                    Printer.QueuePrintMark(ListIndex);
+                                    SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintMarkPrintTask(ListIndex) });
                                     Console.CursorLeft = Printer.MARK_LEFT;
-                                    Printer.QueuePrintTotalTime();
+                                    SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTotalTimePrintTask() });
                                 }
                                 break;
                         }
@@ -521,7 +529,7 @@ namespace TimeKeeper
                             case ApplicationManager.States.Mark:
                             case ApplicationManager.States.Edit:
                                 int index = ListIndex;
-                                Printer.QueuePrintScreen();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintScreenPrintTask() });
                                 ListIndex = index;
                                 break;
                         }
@@ -551,7 +559,7 @@ namespace TimeKeeper
                             case ApplicationManager.States.Off:
                                 ApplicationManager.ProgramState = ApplicationManager.States.View;
                                 SM.CurrentSession = SM.SelectedSession();
-                                Printer.QueuePrintAllTimes();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintAllTimesPrintTask() });
                                 break;
                         }
                         break;
@@ -609,7 +617,7 @@ namespace TimeKeeper
                                 break;
                             case ApplicationManager.States.View:
                                 SM.CurrentSession = SM.PreviousSession();
-                                Printer.QueuePrintAllTimes();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintAllTimesPrintTask() });
                                 break;
                         }
                         break;
@@ -622,7 +630,7 @@ namespace TimeKeeper
                                 break;
                             case ApplicationManager.States.View:
                                 SM.CurrentSession = SM.NextSession();
-                                Printer.QueuePrintAllTimes();
+                                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintAllTimesPrintTask() });
                                 break;
                         }
                         break;
@@ -651,7 +659,11 @@ namespace TimeKeeper
             Timer.Stop();
 
             //Do you want to save your latest time?
-            Printer.QueuePromptUser("Do you want to save your latest time? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
+
+            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask),
+                new object[]{
+                    Printer.QueuePromptUserPrintTask("Do you want to save your latest time? (y/n)", CheckForValidSaveInput,
+                    new Action<ConsoleKey>(delegate (ConsoleKey CK)
             {
                 switch (CK)
                 {
@@ -666,13 +678,33 @@ namespace TimeKeeper
                     default:
                         break;
                 }
-            }));
+            }) ) });
 
+            PrintTask pt = Printer.QueuePrintScreenPrintTask();
 
-            Printer.QueuePrintScreen().PrintCompleteEvent += new PrintTask.PrintCompleteEventHandler(delegate ()
+            //Do you want save the time sheet?
+            pt.Subtasks.Add(Printer.QueuePromptUserPrintTask("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
             {
-                //Do you want save the time sheet?
-                Printer.QueuePromptUser("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
+                switch (CK)
+                {
+                    case ConsoleKey.Y:
+                        SM.CurrentSession.Finalize();
+                        break;
+                    default:
+                        break;
+                }
+
+                if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
+                    ApplicationManager.ProgramState = ApplicationManager.States.Exit;
+            })
+            ));
+
+            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { pt });
+
+            PrintTask pt2 = Printer.QueuePrintScreenPrintTask();
+            //Do you want save the time sheet?
+            pt.Subtasks.Add(
+                Printer.QueuePromptUserPrintTask("Do you want to save? (y/n)", CheckForValidSaveInput, new Action<ConsoleKey>(delegate (ConsoleKey CK)
                 {
                     switch (CK)
                     {
@@ -685,10 +717,10 @@ namespace TimeKeeper
 
                     if (ApplicationManager.ProgramState == ApplicationManager.States.SaveAndExit)
                         ApplicationManager.ProgramState = ApplicationManager.States.Exit;
-                }));
-            });
-        }
+                })));
+            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { pt2 });
 
+        }
         public static bool CheckForValidSaveInput(ConsoleKey CK)
         {
             bool ValidInput = true;
@@ -715,7 +747,6 @@ namespace TimeKeeper
             {
                 WatchForNewDay();
                 WatchTimer();
-                Printer.WatchForPrintTasks();
             }
         }
 
@@ -734,7 +765,7 @@ namespace TimeKeeper
             {
                 newDayOccurred = true;
                 AddNewTime();
-                Printer.QueuePrintTotalTime();
+                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTotalTimePrintTask() });
                 int length = SM.CurrentSession.LastTimeIndex;//Last TimeEntry
                 if (length > 0)
                 {
@@ -754,7 +785,7 @@ namespace TimeKeeper
             }
             if (newDayOccurred && ApplicationManager.ProgramState == ApplicationManager.States.Watch)
             {
-                Printer.QueuePrintTimeEntry(ListIndex);
+                SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTimeEntryPrintTask(ListIndex) });
                 newDayOccurred = false;
                 SetToLast();
             }
@@ -784,9 +815,11 @@ namespace TimeKeeper
                         listIndex = SM.CurrentSession.LastTimeIndex;
                         SM.CurrentSession.LastTimeEntry.timeSpent = Timer.Elapsed;
                         SetToLast();
-                        Printer.QueuePrintTimeEntry(listIndex);
+                        SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTimeEntryPrintTask(listIndex) });
                         if (SM.CurrentSession.LastTimeEntry.marked)
-                            Printer.QueuePrintTotalTime();
+                        {
+                            SessionPrinter.Invoke(new Printer.PrintTaskHandler(Printer.QueuePrintTask), new object[] { Printer.QueuePrintTotalTimePrintTask() });
+                        }
                         TimerChanged = false;
                     }
                     break;
